@@ -146,8 +146,11 @@ Once all the datasets are downloaded and preprocessed, the data structure should
 * [ ] Describe how to evaluate the model
 
 <details><summary><h4> FID</h4></summary>
+
 Package repo: https://github.com/mseitzer/pytorch-fid
+    ```bash
 pip install pytorch-fid
+    ```
 To compute the FID score between two datasets, where images of each dataset are contained in an individual folder:
     ```bash
     python -m pytorch_fid data/meglass/test_x data/lfw/test_x --device cuda:0
