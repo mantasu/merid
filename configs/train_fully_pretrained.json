@@ -1,0 +1,56 @@
+{
+    "mask_generator": {
+        "modules": {
+            "discriminator": {"name": "PatchGAN"},
+            "domain_adapter": {"name": "DomainAdapter", "is_torchvision_vgg": false, "vgg_weights": ""},
+            "glasses_masker": {"name": "ResnetGeneratorMask", "input_nc": 64, "output_nc": 2, "norm": "BatchNorm2d"},
+            "shadows_masker": {"name": "ResnetGeneratorMask", "input_nc": 65, "output_nc": 2, "norm": "BatchNorm2d"}
+        },
+        "weights": {
+            "domain_adapter": ["checkpoints/pretrained.pt", "DA"],
+            "glasses_masker": ["checkpoints/pretrained.pt", "GM"],
+            "shadows_masker": ["checkpoints/pretrained.pt", "SM"],
+            "freeze_domain_adapter": false
+        },
+        "training": {
+            "optimizer_g": {"name": "Adam", "lr": 0.0002, "betas": [0.5, 0.999]},
+            "optimizer_d": {"name": "Adam", "lr": 0.0002, "betas": [0.5, 0.999]},
+            "optimizer_m": {"name": "AdamW"},
+            "criterion_adv": {"name": "MSE"},
+            "criterion_seg": {"name": "BCEWithLogits", "pos_weight": [10]}
+        }
+    },
+    "mask_inpainter": {
+        "modules": {
+            "core_inpainter": {"name": "DDNM"},
+            "post_processer": {"name": "NAFNet"}
+        }
+    },
+    "data": {
+        "transforms_train": [
+            {"name": "HorizontalFlip"},
+            {"name": "VerticalFlip"},
+            {"name": "GridDistortion", "p": 0.2},
+            {"name": "RandomBrightnessContrast", "brightness_limit": [0, 0.5], "contrast_limit": [0, 0.5]},
+            {"name": "GaussNoise"}
+        ],
+        "transforms_val": [
+            {"name": "HorizontalFlip"},
+            {"name": "GridDistortion", "p": 0.2}
+        ],
+        "dataset": {
+            "name": "GeneralDataset",
+            "img_size": [256, 256],
+            "val_size": 0.3,
+            "split_seed": 42,
+            "path_x": "data/celeba/train_x",
+            "path_y": "data/synthetic/train_x",
+            "use_labels": true
+        },
+        "dataloader": {
+            "batch_size": 8,
+            "num_workers": 10,
+            "pin_memory": true
+        }
+    }
+}

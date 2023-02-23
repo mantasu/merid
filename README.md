@@ -136,6 +136,11 @@ Once all the datasets are downloaded and preprocessed, the data structure should
 
 </details>
 
+## Checkpoints
+
+For training, certain pre-trained models are used to initialize parts of our architecture. Please download and put the files under `checkpoints` directory:
+1. `vgg_normalised.pth` - download from [here](https://drive.google.com/file/d/1EpkBA2K2eYILDSyPTt0fztz59UjAIpZU/view). Used to initialize 
+
 ## File Structure
 * [ ] Describe file structure
 
@@ -181,6 +186,16 @@ To run a demo, put an image to `demo/` and modify [inference.py](inference.py) c
 ```bash
 python inference.py
 ```
+
+## Config
+
+### Domain Adapter
+* `is_torchvision_vgg`: whether to load [torchvision _VGG-19_](https://pytorch.org/vision/main/models/generated/torchvision.models.vgg19.html#torchvision.models.vgg19) model or to use the custom [normalised _VGG-19_](https://github.com/naoto0804/pytorch-AdaIN) as in the original "Portrait Eyeglasses Removal" paper
+* `vgg_weights`: the path to VGG weights. Please specify one of the following 3 options:
+    * Leave empty `""` to keep random initialization, e.g., if weights for Domain Adapter are going to be loaded (would automatically initialize VGG weights).
+    * If `is_torchvision_vgg` is `false`, set to the path of the downloaded weights from the repository which contains that _VGG-19_ version
+    * If `is_torchvision_vgg` is `true`, set to one of the [torchvision's](https://pytorch.org/vision/main/models/generated/torchvision.models.vgg19.html#torchvision.models.VGG19_Weights) options like `"DEFAULT"`
+* `weights`: the path to domain adapter weights. If the parameters file contains weights for multiple modules, instead of a path, specify as a list, where the first entry is the path and the second entry is the dictionary key for domain adapter weights. If the value is empty `""`, then it will be trained.
 
 ## References
 The work was heavily influenced and a lot of code has been borrowed and modified from the following repositories:

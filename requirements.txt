@@ -3,3 +3,10 @@ numpy
 opencv-python
 sklearn
 scikit-image
+pytorch-lightning
+segmentation-models-pytorch
+pytorch-fid
+tensorboard
+torch-tb-profiler
+ipykernel
+albumentations
