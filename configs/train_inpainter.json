@@ -1,0 +1,22 @@
+{
+    "mask_generator": {
+        "macro": "configs/macro/pretrained_masker.json"
+    },
+    "mask_inpainter": {
+        "modules": {
+            "discriminator": {"name": "PatchGAN"},
+            "core_inpainter": {"name": "DDNMInpainter"},
+            "post_processer": {"name": "NAFNetArtefactRemover", "nafnet_weights": "checkpoints/NAFNet-SIDD-width32.pth", "width": 32, "middle_blk_num": 12, "enc_blk_nums": [2, 2, 4, 8], "dec_blk_nums": [2, 2, 2, 2]}
+        },
+        "weights": {
+            "core_inpainter": "checkpoints/celeba_hq.ckpt",
+            "freeze_core_inpainter": true
+        },
+        "training": {
+
+        }
+    },
+    "data": {
+        
+    }
+}

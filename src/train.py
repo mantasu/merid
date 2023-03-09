@@ -5,7 +5,6 @@ import pytorch_lightning as pl
 from datasets.data_module import GeneralModule
 
 from architectures.mask_generator import MaskGenerator
-import albumentations as A
 
 from utils.io import load_json
 from utils.config import parse_model_config, fix_weights, parse_data_config
@@ -25,7 +24,7 @@ def parse_arguments():
     return parser.parse_args()
 
 def prepare_model(model_name, model_config):
-    model_config = parse_model_config(model_config, fix_weights, flatten=True)
+    model_config = parse_model_config(model_config, fix_weights)
 
     if model_name == "mask_generator":
         return MaskGenerator(model_config)

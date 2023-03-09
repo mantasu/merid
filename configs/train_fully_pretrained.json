@@ -16,14 +16,23 @@
             "optimizer_g": {"name": "Adam", "lr": 0.0002, "betas": [0.5, 0.999]},
             "optimizer_d": {"name": "Adam", "lr": 0.0002, "betas": [0.5, 0.999]},
             "optimizer_m": {"name": "AdamW"},
-            "criterion_adv": {"name": "MSE"},
-            "criterion_seg": {"name": "BCEWithLogits", "pos_weight": [10]}
+            "criterion_adv": {"name": "MSELoss"},
+            "criterion_seg": {"name": "BCEWithLogitsLoss", "pos_weight": [10]}
         }
     },
     "mask_inpainter": {
         "modules": {
-            "core_inpainter": {"name": "DDNM"},
-            "post_processer": {"name": "NAFNet"}
+            "discriminator": {"name": "PatchGAN"},
+            "core_inpainter": {"name": "DDNMInpainter"},
+            "post_processer": {"name": "NAFNetArtefactRemover", "nafnet_weights": "checkpoints/NAFNet-SIDD-width32.pth", "width": 32, "middle_blk_num": 12, "enc_blk_nums": [2, 2, 4, 8], "dec_blk_nums": [2, 2, 2, 2]}
+        },
+        "weights": {
+            "core_inpainter": "checkpoints/celeba_hq.ckpt",
+            "freeze_core_inpainter": true
+        },
+        "training": {
+            "optimizer_g": {"name": "Adam", "lr": 0.001},
+            "optimizer_d": {"name": "Adam", "lr": 0.0002, "betas": [0.5, 0.999]}
         }
     },
     "data": {
@@ -35,15 +44,14 @@
             {"name": "GaussNoise"}
         ],
         "transforms_val": [
-            {"name": "HorizontalFlip"},
-            {"name": "GridDistortion", "p": 0.2}
+            
         ],
         "dataset": {
             "name": "GeneralDataset",
             "img_size": [256, 256],
             "val_size": 0.3,
             "split_seed": 42,
-            "path_x": "data/celeba/train_x",
+            "path_x": "data/celeba/train/glasses",
             "path_y": "data/synthetic/train_x",
             "use_labels": true
         },

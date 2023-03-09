@@ -6,7 +6,7 @@ import pytorch_lightning as pl
 from torchmetrics.classification import BinaryF1Score
 
 class MaskGenerator(pl.LightningModule):
-    def __init__(self, config={}):
+    def __init__(self, config):
         super().__init__()
 
         self.domain_adapter = config["domain_adapter"]

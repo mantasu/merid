@@ -33,7 +33,7 @@ class GeneralDataset(Dataset):
         self.transforms_val = transforms_val
 
         # Auxilary parameters
-        self.is_val = False
+        self.is_train = False
         self.t = T.Compose([T.ToTensor(), T.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
         
         if path_x is not None:
@@ -75,7 +75,7 @@ class GeneralDataset(Dataset):
             transform_kwargs["mask"] = mask_a
             transform_kwargs["mask1"] = mask_b
         
-        if self.is_val and self.transforms_val is not None:
+        if not self.is_train and self.transforms_val is not None:
             aug = self.transforms_val(**transform_kwargs)
         elif self.transforms_train is not None:
             aug = self.transforms_train(**transform_kwargs)
@@ -98,3 +98,6 @@ class GeneralDataset(Dataset):
             return len(self.image_paths_x)
         else:
             return min(len(self.image_paths_x), len(self.image_paths_y))
+    
+    def set_train(self, is_train=True):
+        self.is_train = True

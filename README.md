@@ -78,8 +78,8 @@ Once all the datasets are downloaded and preprocessed, the data structure should
     * Download `list_attr_celeba.txt` file from [here](https://drive.google.com/drive/folders/0B7EVK8r0v71pOC0wOVZlQnFfaGs?resourcekey=0-pEjrQoTrlbjZJO2UL8K_WQ) and put it under `./data/celeba/list_attr_celeba.txt`
 3. Unzip the data:
     ```bash
-    7z x ./data/celeba/img_celeba.7z/img_celeba.7z.001 -o./data/celeba/
-    unzip ./data/celeba/annotations.zip -d ./data/celeba/
+    7z x data/celeba/img_celeba.7z/img_celeba.7z.001 -o./data/celeba
+    unzip data/celeba/annotations.zip -d data/celeba/
     ```
 4. Crop, align and split to glasses/no-glasses:
     ```bash
