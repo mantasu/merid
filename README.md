@@ -48,6 +48,26 @@ Once all the datasets are downloaded and preprocessed, the data structure should
 
 ```
 
+<details><summary><h3>Preparing CelebA Mask HQ (optional)</h3></summary>
+
+1. Download the files from Google Drive:
+    * Download `CelebAMask-HQ.zip` folder from [here](https://drive.google.com/file/d/1badu11NqxGf6qM3PTTooQDJvQbejgbTv/view) and put it under `./data/celeba-mask-hq/CelebAMask-HQ.zip`
+    * Download `annotations.zip` file from [here](https://drive.google.com/file/d/1xd-d1WRnbt3yJnwh5ORGZI3g-YS-fKM9/view) and put it under `data/celeba/annotations.zip` (_Note:_ you will need this file for `celeba`, so just put it there, _not_ in `celeba-mask-hq`)
+3. Unzip the data:
+    ```bash
+    unzip data/celeba-mask-hq/CelebAMask-HQ.zip -d data/celeba-mask-hq
+    ```
+4. Split to train/val/test
+    ```bash
+    python scripts/preprocess_celeba_mask_hq.py
+    ```
+5. Clean up
+    ```bash
+    rm -rf data/celeba-mask-hq/CelebAMask-HQ data/celeba-mask-hq/CelebAMask-HQ.zip
+    ```
+
+</details>
+
 <details><summary><h3>Prepareing Synthetic Dataset</h3></summary>
 
 1. Download the files from Google Drive:
@@ -75,7 +95,6 @@ Once all the datasets are downloaded and preprocessed, the data structure should
 1. Download the files from Google Drive:
     * Download `img_celeba.7z` folder from [here](https://drive.google.com/drive/folders/0B7EVK8r0v71peklHb0pGdDl6R28?resourcekey=0-f5cwz-nTIQC3KsBn3wFn7A) and put it under `./data/celeba/img_celeba.7z`
     * Download `annotations.zip` file from [here](https://drive.google.com/file/d/1xd-d1WRnbt3yJnwh5ORGZI3g-YS-fKM9/view) and put it under `./data/celeba/annotations.zip`
-    * Download `list_attr_celeba.txt` file from [here](https://drive.google.com/drive/folders/0B7EVK8r0v71pOC0wOVZlQnFfaGs?resourcekey=0-pEjrQoTrlbjZJO2UL8K_WQ) and put it under `./data/celeba/list_attr_celeba.txt`
 3. Unzip the data:
     ```bash
     7z x data/celeba/img_celeba.7z/img_celeba.7z.001 -o./data/celeba

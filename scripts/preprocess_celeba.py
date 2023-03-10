@@ -14,7 +14,7 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     
     # Define all the command line arguments and default values
-    parser.add_argument("--img_dir", default="data/celeba/img_celeba",
+    parser.add_argument("--img-dir", default="data/celeba/img_celeba",
         help="Path to CelebA images. Defaults to 'data/celeba/img_celeba'.")
     parser.add_argument("--landmarks_path", default="data/celeba/landmark.txt",
         help=f"Path to CelebA landmarks. Defaults to "
@@ -23,7 +23,7 @@ def parse_args() -> argparse.Namespace:
         default="data/celeba/standard_landmark_68pts.txt",
         help=f"Path to CelebA standard landmaks. Defaults to "
              f"'data/celeba/standard_landmark_68pts.txt'.")
-    parser.add_argument("--split_info_file_paths", nargs=3, default=\
+    parser.add_argument("--split-info-file-paths", nargs=3, default=\
         [f"data/celeba/{x}_label.txt" for x in ["train", "val", "test"]],
         help=f"3 paths to files that contain information on how to split the "
              f"data into 3 parts. Defaults to ['data/celeba/train_label.txt', "
