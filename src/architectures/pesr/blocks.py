@@ -100,12 +100,20 @@ class ResNeXtBlock(nn.Module):
         return out
 
 class VGGBlock(nn.Sequential):
-    def __init__(self, weights="DEFAULT", is_torchvision=True):
+    def __init__(self, weights="DEFAULT", is_torchvision=True, freeze=None):
         super().__init__(*self.init_modules(weights, is_torchvision))
 
-        for param in self.parameters():
-            # Freeze the VGG parameters
-            param.requires_grad = False
+        if freeze is None:
+            # Automatically determine whether to freeze
+            freeze = weights is not None and weights != ""
+        
+        if freeze:
+            for param in self.parameters():
+                # Freeze the VGG parameters
+                param.requires_grad = False
+
+            # Eval mode
+            self.eval()
     
     def init_modules(self, weights, is_torchvision):
         # Assign None to perform less if statements

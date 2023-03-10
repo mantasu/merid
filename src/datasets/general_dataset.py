@@ -34,7 +34,7 @@ class GeneralDataset(Dataset):
 
         # Auxilary parameters
         self.is_train = False
-        self.t = T.Compose([T.ToTensor(), T.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
+        self.t = T.Compose([T.ToTensor()])#, T.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
         
         if path_x is not None:
             # If the 1st path is not none, read it

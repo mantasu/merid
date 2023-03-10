@@ -4,7 +4,7 @@ import numpy as np
 from PIL import Image
 import matplotlib.pyplot as plt
 from scipy.ndimage import binary_dilation
-from utils.io import load_json
+from utils.io_and_types import load_json
 from train import parse_arguments, prepare_model, prepare_datamodule
 
 from architectures.mask_inpainter import MaskInpainter
@@ -89,14 +89,13 @@ if __name__ == "__main__":
 
     nnn = 8
     it = iter(dataloader)
-    next(it)
+    # next(it)
 
     x1, x2, y1, y2 = next(it)
     sample = x1
 
-    from architectures.sunglasses_classifier import SunglassesClssifier
-    sun = SunglassesClssifier()
-    sun.load_state_dict(torch.load("checkpoints/sunglasses-classsifier-best.pth"))
+    from pesr.sunglasses_classifier import SunglassesClssifier
+    sun = SunglassesClssifier("checkpoints/sunglasses-classifier-best.pth")
     preds = sun(sample).sigmoid().round().squeeze()
     print(preds)
     
@@ -109,6 +108,11 @@ if __name__ == "__main__":
 
     smooth_glasses = mask_glasses.copy()
     smooth_shadows = mask_shadows.copy()
+
+    from architectures.pesr.sunglasses_classifier import MaskPostprocesser
+    pper = MaskPostprocesser("checkpoints/sunglasses-classifier-best.pth")
+    print(out_glasses.argmax(1).shape)
+    pper_mask = pper(x2, out_glasses.argmax(1).unsqueeze(1), out_shadows.argmax(1).unsqueeze(1))
 
 
     for l, (is_sun, binary_glasses, binary_shadows) in enumerate(zip(preds, mask_glasses, mask_shadows)):
@@ -130,12 +134,22 @@ if __name__ == "__main__":
         # for i in range(3):
         #     binary_image = binary_erosion(binary_image, diamond(1))
 
-        smooth_glasses[l] = dilate(binary_glasses)
-        smooth_shadows[l] = dilate(binary_shadows)
-
         if is_sun == 1:
-            smooth_glasses[l] = binary_dilation(smooth_glasses[l], star(5))
+            # smooth_glasses[l] = binary_dilation(smooth_glasses[l], star(5))
+            smooth_glasses[l] = binary_dilation(smooth_glasses[l], disk(5))
             smooth_glasses[l] = morphology.binary_closing(smooth_glasses[l], disk(20))
+            # smooth_glasses[l] = morphology.remove_small_holes(smooth_glasses[l], 256)
+        else:
+            smooth_glasses[l] = binary_dilation(smooth_glasses[l], disk(1)) # dilate(binary_glasses)
+            smooth_shadows[l] = binary_dilation(smooth_shadows[l], disk(1)) # dilate(binary_shadows)
+    
+
+    imgs = x2
+    smooth_both = (smooth_glasses | smooth_shadows)
+    mask_both = (mask_glasses | mask_shadows)
+
+    smooth_both = pper_mask.squeeze().numpy().astype(np.uint8)
+    print(smooth_both.shape)
 
     
 
@@ -146,12 +160,39 @@ if __name__ == "__main__":
 
     print("Ready to inpaint")
 
-    imgs = x2
-    smooth_both = (smooth_glasses | smooth_shadows)
-    mask_both = (mask_glasses | mask_shadows)
+    from architectures.lafin.lafin_inpainter import LafinInpainter
 
-    inp = mask_inpainter(imgs.cuda(), torch.tensor(1 - smooth_both).unsqueeze(1).cuda()).cpu()
+    inp = None
+
+    lafin = LafinInpainter("checkpoints/landmark_detector.pth", "checkpoints/InpaintingModel_gen.pth").cuda()
+    inp = lafin(imgs.cuda(), (torch.tensor(smooth_both).unsqueeze(1) > 0).float().cuda()).cpu()
+    
+
+    # inp = mask_inpainter(imgs.cuda(), torch.tensor(1 - smooth_both).unsqueeze(1).cuda()).cpu()
     # inp_bad = mask_inpainter(imgs.cuda(), torch.tensor(1 - mask_both).unsqueeze(1).cuda())
+    
+    # from diffusers import StableDiffusionInpaintPipeline
+    # from PIL import Image
+    # from tqdm import tqdm
+    # from utils.io_and_types import tensor_to_image as tti
+
+    # pipe = StableDiffusionInpaintPipeline.from_pretrained(
+    #     "runwayml/stable-diffusion-inpainting",
+    #     revision="fp16",
+    #     torch_dtype=torch.float16,
+    # )
+    # pipe
+    # prompt = "Eye region, no glasses"
+    # #image and mask_image should be PIL images.
+    # #The mask structure is white for inpainting and black for keeping as is
+
+    # inps = []
+    # for img, msk in tqdm(zip(imgs, smooth_both)):
+    #     im = pipe(prompt=prompt, image=tti(img, as_pil=True), mask_image=tti(torch.tensor(msk), as_pil=True)).images[0]
+    #     inps.append(np.array(im))
+    
+    # inp = inps
+    from torchvision.transforms.functional import to_pil_image
 
 
 
@@ -165,7 +206,7 @@ if __name__ == "__main__":
         smh_shadows = Image.fromarray(smooth_shadows[i] * 255)
         smh_both = Image.fromarray(smooth_both[i] * 255)
         msk = Image.fromarray(overlay(np.array(img), smooth_both[i]))
-        inpainted = tensor_to_image(inp[i])
+        inpainted = to_pil_image(inp[i]) # tensor_to_image(inp[i])
         # ino = tensor_to_image(inp_bad[i])
         #  truth = tensor_to_image(y3[i])
 

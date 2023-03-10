@@ -34,17 +34,6 @@ def parse_args() -> argparse.Namespace:
 def align_crop(image: np.ndarray, landmarks_src: np.ndarray,
                landmarks_standard: np.ndarray, face_factor: float = 0.7,
                crop_size: tuple[int, int] = (256, 256)):
-    # set OpenCV
-    # inter = {0: cv2.INTER_NEAREST, 1: cv2.INTER_LINEAR, 2: cv2.INTER_AREA,
-    #          3: cv2.INTER_CUBIC, 4: cv2.INTER_LANCZOS4, 5: cv2.INTER_LANCZOS4}
-    # border = {'constant': cv2.BORDER_CONSTANT, 'edge': cv2.BORDER_REPLICATE,
-    #           'symmetric': cv2.BORDER_REFLECT, 'reflect': cv2.BORDER_REFLECT101,
-    #           'wrap': cv2.BORDER_WRAP}
-
-    # # check
-    # assert align_type in ['affine', 'similarity'], 'Invalid `align_type`! Allowed: %s!' % ['affine', 'similarity']
-    # assert order in [0, 1, 2, 3, 4, 5], 'Invalid `order`! Allowed: %s!' % [0, 1, 2, 3, 4, 5]
-    # assert mode in ['constant', 'edge', 'symmetric', 'reflect', 'wrap'], 'Invalid `mode`! Allowed: %s!' % ['constant', 'edge', 'symmetric', 'reflect', 'wrap']
 
     # Compute target landmarks based on the provided face factor
     target_landmarks = landmarks_standard * max(*crop_size) * face_factor
@@ -59,25 +48,9 @@ def align_crop(image: np.ndarray, landmarks_src: np.ndarray,
                                    flags=cv2.WARP_INVERSE_MAP + cv2.INTER_AREA,
                                    borderMode=cv2.BORDER_REPLICATE)
 
-    # get transformed landmarks
-    # tformed_landmarks = cv2.transform(np.expand_dims(src_landmarks, axis=0), cv2.invertAffineTransform(tform))[0]
-
     return image_cropped
 
 
-# ==============================================================================
-# =                                opencv first                                =
-# ==============================================================================
-
-# _DEAFAULT_JPG_QUALITY = 95
-# import cv2
-# imread = cv2.imread
-# imwrite = partial(cv2.imwrite, params=[int(cv2.IMWRITE_JPEG_QUALITY), _DEAFAULT_JPG_QUALITY])
-# align_crop = align_crop_opencv
-
-# ==============================================================================
-# =                                     run                                    =
-# ==============================================================================
 
 def open_landmark_files(landmarks_path: str, landmarks_standard_path: str) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     with open(landmarks_path) as f:
@@ -136,23 +109,6 @@ def generate_save_paths(split_info_file_paths: list[str, str, str],
     return save_paths_map
 
 
-
-# count landmarks
-# with open(args.landmark_file) as f:
-#     line = f.readline()
-# n_landmark = len(re.split('[ ]+', line)[1:]) // 2
-
-# # read data
-
-# standard_landmark[:, 0] += args.move_w
-# standard_landmark[:, 1] += args.move_h
-
-# # data dir
-# save_dir = os.path.join(args.save_dir, 'align_size(%d,%d)_move(%.3f,%.3f)_face_factor(%.3f)_%s' % (args.crop_size_h, args.crop_size_w, args.move_h, args.move_w, args.face_factor, args.save_format))
-# data_dir = os.path.join(save_dir, 'data')
-# if not os.path.isdir(data_dir):
-#     os.makedirs(data_dir)
-
 def worker(i: int, save_paths_map: dict[str, tuple[str, str]],
            image_filenames: np.ndarray, landmarks: np.ndarray,
            landmarks_standard: np.ndarray, sr_model: torch.nn.Module | None,
@@ -174,49 +130,6 @@ def worker(i: int, save_paths_map: dict[str, tuple[str, str]],
     image_aligned = cv2.cvtColor(image_aligned, cv2.COLOR_RGB2BGR)
     cv2.imwrite(out_path, image_aligned, params=[int(cv2.IMWRITE_JPEG_QUALITY), 95])
 
-    
-
-# def work(i):  # a single work
-#     for _ in range(3):  # try three times
-#         try:
-#             img = imread(os.path.join(args.img_dir, img_names[i]))
-#             img_crop, tformed_landmarks = align_crop(img,
-#                                                      landmarks[i],
-#                                                      standard_landmark,
-#                                                      crop_size=(args.crop_size_h, args.crop_size_w),
-#                                                      face_factor=args.face_factor,
-#                                                      align_type=args.align_type,
-#                                                      order=args.order,
-#                                                      mode=args.mode)
-
-#             name = os.path.splitext(img_names[i])[0] + '.' + args.save_format
-#             path = os.path.join(data_dir, name)
-#             if not os.path.isdir(os.path.split(path)[0]):
-#                 os.makedirs(os.path.split(path)[0])
-#             imwrite(path, img_crop)
-
-#             tformed_landmarks.shape = -1
-#             name_landmark_str = ('%s' + ' %.1f' * n_landmark * 2) % ((name, ) + tuple(tformed_landmarks))
-#             succeed = True
-#             break
-#         except:
-#             succeed = False
-#     if succeed:
-#         return name_landmark_str
-#     else:
-#         print('%s fails!' % img_names[i])
-
-
-# pool = Pool(args.n_worker)
-# name_landmark_strs = list(tqdm.tqdm(pool.imap(work, range(len(img_names))), total=len(img_names)))
-# pool.close()
-# pool.join()
-
-# landmarks_path = os.path.join(save_dir, 'landmark.txt')
-# with open(landmarks_path, 'w') as f:
-#     for name_landmark_str in name_landmark_strs:
-#         if name_landmark_str:
-#             f.write(name_landmark_str + '\n')
 
 def main():
     # Parse arguments

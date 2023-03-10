@@ -10,7 +10,7 @@ import torch.optim as optim
 import albumentations as A
 from typing import Type, Any
 
-from .io import load_json
+from .io_and_types import load_json
 from copy import deepcopy
 from collections import OrderedDict
 from torch.utils.data import random_split

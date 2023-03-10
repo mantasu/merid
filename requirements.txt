@@ -10,3 +10,4 @@ tensorboard
 torch-tb-profiler
 ipykernel
 albumentations
+kornia
