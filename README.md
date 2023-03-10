@@ -83,8 +83,7 @@ Once all the datasets are downloaded and preprocessed, the data structure should
     ```
 4. Crop, align and split to glasses/no-glasses:
     ```bash
-    python ./scripts/align_celeba.py --crop_size_h 256 --crop_size_w 256 --order 4 --n_worker 24
-    python ./scripts/split.py --dataset celeba
+    python scripts/preprocess_celeba.py
     ```
 5. Clean up
     ```bash
