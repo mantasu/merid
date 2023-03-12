@@ -71,21 +71,18 @@ Once all the datasets are downloaded and preprocessed, the data structure should
 <details><summary><h3>Prepareing Synthetic Dataset</h3></summary>
 
 1. Download the files from Google Drive:
-    * Download `ALIGN_RESULT_V2.zip` from [here](https://drive.google.com/file/d/1X1qkozQbVyz5lUA8xd-lYfy1jauOji46/view) and place it under `./data/synthetic/ALIGN_RESULT_V2.zip`
-    * Download `basic_split.txt` from [here](https://drive.google.com/file/d/1ahqlo03laA3edlH0jMgcgIpHki4WiNaH/view) and place it under `./data/synthetic/basic_split.txt`
+    * Download `ALIGN_RESULT_V2.zip` from [here](https://drive.google.com/file/d/1X1qkozQbVyz5lUA8xd-lYfy1jauOji46/view) and place it under `data/synthetic/ALIGN_RESULT_V2.zip`
 2. Unzip the data
     ```bash
-    unzip ./data/synthetic/ALIGN_RESULT_v2.zip -d ./data/synthetic
+    unzip data/synthetic/ALIGN_RESULT_v2.zip -d data/synthetic
     ```
 3. Generate shadow labels and split to glasses and their labels:
     ```bash
-    python ./scripts/gen_shadows.py --syndata_dir ./data/synthetic/ALIGN_RESULT_v2
-    python ./scripts/split.py --dataset synthetic
+    python scripts/preprocess_synthetic.py
     ```
 4. Cleanup the workspace:
     ```bash
-    rm -rf ./data/synthetic/ALIGN_RESULT_v2
-    rm ./data/synthetic/ALIGN_RESULT_v2.zip ./data/synthetic/basic_split.txt
+    rm -rf ./data/synthetic/ALIGN_RESULT_v2 data/synthetic/ALIGN_RESULT_v2.zip
     ```
 
 </details>

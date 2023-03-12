@@ -167,9 +167,9 @@ class DDNMInpainter(object):
         return self.model.parameters()
 
     @torch.no_grad()
-    def forward(self, imgs, masks):
-        y, x = imgs * masks, torch.randn_like(imgs)
-        n, x0_preds, xs = x.size(0), [], [x]
+    def forward(self, imgs, masks, rand=None):
+        x = torch.rand_like(imgs) if rand is None else rand
+        n, x0_preds, xs, y = x.size(0), [], [x], imgs * masks
         import tqdm
         
         # reverse diffusion sampling

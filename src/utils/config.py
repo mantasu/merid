@@ -10,16 +10,12 @@ import torch.optim as optim
 import albumentations as A
 from typing import Type, Any
 
-from .io_and_types import load_json
+from .io import load_json
 from copy import deepcopy
 from collections import OrderedDict
 from torch.utils.data import random_split
-from general_dataset import GeneralDataset
 from pesr.segmentation import ResnetGeneratorMask
 from pesr.domain_adaption import DomainAdapter, PatchGAN
-from glasses_labeled_dataset import GlassesLabeledDataset
-from glasses_and_no_glasses_mix_dataset import GlassesAndNoGlassesMixDataset
-from labeled_and_non_labeled_mix_dataset import LabeledAndNonLabeledMixDataset
 
 AVAILABLE_CLASSES = dict((
     *inspect.getmembers(A, inspect.isclass),
@@ -28,10 +24,6 @@ AVAILABLE_CLASSES = dict((
     ("ResnetGeneratorMask", ResnetGeneratorMask),
     ("DomainAdapter", DomainAdapter),
     ("PatchGAN", PatchGAN),
-    ("GeneralDataset", GeneralDataset),
-    ("GlassesLabeledDataset", GlassesLabeledDataset),
-    ("GlassesAndNoGlassesMixDataset", GlassesAndNoGlassesMixDataset),
-    ("LabeledAndNonLabeledMixDataset", LabeledAndNonLabeledMixDataset)
 ))
 
 def verify_types(config: dict[str, Any]) -> dict[str, Any]:

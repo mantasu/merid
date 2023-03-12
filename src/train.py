@@ -6,7 +6,7 @@ from datasets.data_module import GeneralModule
 
 from architectures.mask_generator import MaskGenerator
 
-from utils.io_and_types import load_json
+from utils.io import load_json
 from utils.config import parse_model_config, fix_weights, parse_data_config
 
 torch.set_float32_matmul_precision("medium")

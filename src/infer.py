@@ -4,7 +4,7 @@ import numpy as np
 from PIL import Image
 import matplotlib.pyplot as plt
 from scipy.ndimage import binary_dilation
-from utils.io_and_types import load_json
+from utils.io import load_json
 from train import parse_arguments, prepare_model, prepare_datamodule
 
 from architectures.mask_inpainter import MaskInpainter
@@ -94,7 +94,7 @@ if __name__ == "__main__":
     x1, x2, y1, y2 = next(it)
     sample = x1
 
-    from pesr.sunglasses_classifier import SunglassesClssifier
+    from extra.sunglasses_classifier import SunglassesClssifier
     sun = SunglassesClssifier("checkpoints/sunglasses-classifier-best.pth")
     preds = sun(sample).sigmoid().round().squeeze()
     print(preds)
@@ -109,7 +109,7 @@ if __name__ == "__main__":
     smooth_glasses = mask_glasses.copy()
     smooth_shadows = mask_shadows.copy()
 
-    from architectures.pesr.sunglasses_classifier import MaskPostprocesser
+    from extra.sunglasses_classifier import MaskPostprocesser
     pper = MaskPostprocesser("checkpoints/sunglasses-classifier-best.pth")
     print(out_glasses.argmax(1).shape)
     pper_mask = pper(x2, out_glasses.argmax(1).unsqueeze(1), out_shadows.argmax(1).unsqueeze(1))

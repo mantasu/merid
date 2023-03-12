@@ -54,8 +54,7 @@ class MaskGenerator(pl.LightningModule):
             self.log('train/g_loss', g_loss)
             
             return g_loss
-        
-        if not train_generator:
+        else:
             # Concatenate glasses and shadows feature channels together
             f_real = torch.cat(self.domain_adapter(real_imgs), axis=1)
             f_synth = torch.cat(self.domain_adapter(synth_imgs), axis=1)
