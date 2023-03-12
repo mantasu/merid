@@ -1,9 +1,10 @@
 import torch
 import torch.nn as nn
+import pytorch_lightning as pl
 from skimage.morphology import disk
 from kornia.morphology import dilation, closing
 
-class MaskRetoucher(nn.Module):
+class MaskRetoucher(pl.LightningModuleModule):
     def __init__(self, config: dict[str, nn.Module, bool]):
         super().__init__()
 
@@ -32,16 +33,16 @@ class MaskRetoucher(nn.Module):
     def forward(self, x: torch.Tensor, mask_glasses: torch.Tensor,
                 mask_shadows: torch.Tensor) -> torch.Tensor:
         # Predict sunglasses mask if needed, enhance and join both masks
-        mask_glasses = self.enhance_mask_if_sunglasses(x, mask_glasses)
+        mask_glasses, is_sunglasses = self.enhance_mask_if_sunglasses(x, mask_glasses)
         masks = self.apply_morphology(mask_glasses, mask_shadows)
         mask = torch.logical_or(*masks)
 
-        return mask
+        return mask, is_sunglasses
     
     def enhance_mask_if_sunglasses(self, x, mask_glasses: torch.Tensor) -> torch.Tensor:
         if self.sunglasses_predictor is None or self.sunglasses_segmenter is None:
             # No sunglasses exist
-            return mask_glasses
+            return mask_glasses, None
         
         # Predict if sunglasses and convert to bool as indices
         is_sunglasses = self.sunglasses_predictor(x).flatten()
@@ -55,7 +56,7 @@ class MaskRetoucher(nn.Module):
             # mask_sunglasses = self.sunglasses_segmenter(x[is_sunglasses])
             # mask_glasses = (mask_glasses.bool() | mask_sunglasses.bool()).float()
         
-        return mask_glasses
+        return mask_glasses, is_sunglasses
     
     def apply_morphology(self, *masks):
         # Init return vals

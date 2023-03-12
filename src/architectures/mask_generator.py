@@ -23,7 +23,7 @@ class MaskGenerator(pl.LightningModule):
 
         self.is_da_frozen = all(not p.requires_grad for p in self.domain_adapter.parameters())
         
-    def forward(self, x):
+    def forward(self, x, return_masks=False):
         # Get feature vectors for glasses and shadows
         f_glasses, f_shadows = self.domain_adapter(x)
 
@@ -34,6 +34,10 @@ class MaskGenerator(pl.LightningModule):
         # Update shadow feature and get shadows output for mask
         f_shadows = torch.cat([f_shadows, mask_glasses], dim=1)
         out_shadows = self.shadows_masker(f_shadows)
+
+        if return_masks:
+            mask_shadows = out_shadows.argmax(1).unsqueeze(1).float()
+            return mask_glasses, mask_shadows
 
         return out_glasses, out_shadows
     

@@ -20,10 +20,10 @@ class SyntheticDataset(BaseDataset):
         super().__init__(data_path, target, transform, seed)
 
         # Reconfigure default transform
-        self.transform = A.Compose(
-            [A.Normalize(), ToTensorV2()], 
-            additional_targets={"image0": "image"}
-        ) if transform is None else transform
+        # self.transform = A.Compose(
+        #     [A.Normalize(), ToTensorV2()], 
+        #     additional_targets={"image0": "image"}
+        # ) if transform is None else transform
     
     def init_samples(self, data_path: str) -> list[tuple[str, str, str, str]]:
         samples = []
@@ -31,9 +31,9 @@ class SyntheticDataset(BaseDataset):
         for file in os.listdir(os.path.join(data_path, "glasses")):
             samples.append((
                 os.path.join(data_path, "glasses", file),
-                os.path.join(data_path, "no_glasses", file.replace("all", "face")),
-                os.path.join(data_path, "masks", file.replace("all", "seg")),
-                os.path.join(data_path, "masks", file.replace("all", "shseg"))
+                os.path.join(data_path, "no_glasses", file.replace("-all", "-face")),
+                os.path.join(data_path, "masks", file.replace("-all", "-seg")),
+                os.path.join(data_path, "masks", file.replace("-all", "-shseg"))
             ))
         
         return samples

@@ -1,3 +1,4 @@
+import torch
 import pytorch_lightning as pl
 from .ddnm.ddnm_inpainter import DDNMInpainter
 from .nafnet.artefact_remover import NAFNetArtefactRemover
@@ -21,7 +22,15 @@ class MaskInpainter(pl.LightningModule):
         return feat
     
     def training_step(self, batch, batch_index):
-        pass
+        (images_synthetic_glasses, images_synthetic_no_glasses,
+         masks_synthetic, images_celeba, masks_celeba) = batch
+        
+        images_synthetic_inpainted = self.core_inpainter(images_synthetic_glasses, masks_synthetic)
+        images_celeba_inpainted = self.core_inpainter(images_celeba, masks_celeba)
+
+        images_synthetic_inpainted = self.post_processer(images_synthetic_inpainted, masks_synthetic)
+        images_celeba_inpainted = self.post_processer(images_celeba_inpainted, masks_)
+
 
     def training_step_post_processer():
         pass

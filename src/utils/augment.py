@@ -27,7 +27,7 @@ def create_default_augmentation() -> A.Compose:
             ], p=0.5),
             A.OneOf([
                 A.Blur(blur_limit=3),
-                A.GaussianBlur(blur_limit=(3, 6)),
+                A.GaussianBlur(blur_limit=(3, 7)),
                 A.MedianBlur(blur_limit=3),
                 A.GaussNoise(var_limit=(10.0, 50.0)),
             ], p=0.5),
