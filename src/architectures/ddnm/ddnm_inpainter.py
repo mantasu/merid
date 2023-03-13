@@ -1,179 +1,222 @@
+import tqdm
 import torch
 import argparse
 import numpy as np
+import torch.nn as nn
 
 from .models import Model
+from typing import Iterable, Any
 
-DEFAULT = {
-    "model": {
-        "type": "simple",
-        "in_channels": 3,
-        "out_ch": 3,
-        "ch": 128,
-        "ch_mult": [1, 1, 2, 2, 4, 4],
-        "num_res_blocks": 2,
-        "attn_resolutions": [16, ],
-        "dropout": 0.0,
-        "ema_rate": 0.999,
-        "ema": True,
-        "resamp_with_conv": True,
-        "image_size": 256,
-        "num_diffusion_timesteps": 1700,
-    },
-    "diffusion": {
-        "var_type": "fixedsmall",
-        "num_diffusion_timesteps": 1700,
-        "beta_schedule": "linear",
-        "beta_start": 0.0001,
-        "beta_end": 0.02
-    },
-    "time_travel": {
-        "T_sampling": 100,
-        "travel_length": 1,
-        "travel_repeat": 1,
-        "num_diffusion_timesteps": 1500,
-    }
-}
 
 class DDNMInpainter(object):
-    def __init__(self, config={}):
-        self.eta = config.get("eta", 0.85)
-        self.device = config.get("device", "cpu")
-        self.model = self._init_model(config.get("model", DEFAULT["model"]))
-        self.betas = self._init_betas(config.get("diffusion", DEFAULT["diffusion"]))
-        self.skip, self.time_pairs = self._init_time_pairs(config.get("time_travel", DEFAULT["time_travel"]))
+    def __init__(self,
+                 num_diff_steps: int = 1000,
+                 image_size: int = 256,
+                 eta: float = 0.85,
+                 device: str = "cpu", 
+                 config_model: dict[str, Any] = {},
+                 config_diffusion: dict[str, Any] = {},
+                 config_time_travel: dict[str, Any] = {}):
+        # Assign basics
+        self.eta = eta
+        self.device = device
 
-    def _init_model(self, model_config):
+        # Acquire specific diffusion attributes like model and schedules
+        self.model = self._init_model(config_model, image_size, num_diff_steps)
+        self.betas = self._init_betas(config_diffusion, num_diff_steps)
+        out = self._init_time_pairs(config_time_travel, num_diff_steps)
+        self.skip, self.time_pairs = out
+
+    def _init_model(self, model_config: dict[str, Any], image_size: int,
+                    num_diff_steps: int) -> nn.Module:
+        # Default model configuration
+        DEFAULT_MODEL_CONFIG = {
+            "type": "simple",
+            "in_channels": 3,
+            "out_ch": 3,
+            "ch": 128,
+            "ch_mult": [1, 1, 2, 2, 4, 4],
+            "num_res_blocks": 2,
+            "attn_resolutions": [16, ],
+            "dropout": 0.0,
+            "ema_rate": 0.999,
+            "ema": True,
+            "resamp_with_conv": True,
+        }
         # Dummy dict for namespace to comply with models.py fomat
         dummy_dict = {
-            "data": {"image_size": model_config.pop("image_size", 256)},
-            "diffusion": {"num_diffusion_timesteps": model_config.pop("num_diffusion_timesteps", 1000)},
-            "model": model_config,
+            "data": {"image_size": image_size},
+            "diffusion": {"num_diffusion_timesteps": num_diff_steps},
+            "model": dict(DEFAULT_MODEL_CONFIG, **model_config),
         }
 
         # Convert config to namespace and make model
         model_config = self.dict2namespace(dummy_dict)
         model = Model(model_config).to(self.device)
-
-        model.eval()
-        for param in model.parameters():
-            param.requires_grad = False
         
         return model
+    
+    def __call__(self, *args, **kwargs):
+        return self.forward(*args, **kwargs) 
 
-    def _init_betas(self, diffusion_config):
+    def _init_betas(self, diffusion_config: dict[str, Any],
+                    num_diff_steps: int) -> torch.Tensor:
+        # Get beta schedule parameter
         betas = self.get_beta_schedule(
-            beta_schedule=diffusion_config["beta_schedule"],
-            beta_start=diffusion_config["beta_start"],
-            beta_end=diffusion_config["beta_end"],
-            num_diffusion_timesteps=diffusion_config["num_diffusion_timesteps"],
+            beta_schedule=diffusion_config.get("beta_schedule", "linear"),
+            beta_start=diffusion_config.get("beta_start", 0.0001),
+            beta_end=diffusion_config.get("beta_end", 0.02),
+            num_diff_steps=num_diff_steps,
         )
+        # Convert beta schedule parameter to torch tensor
         betas = torch.from_numpy(betas).float().to(self.device)
+
         return betas
     
-    def _init_time_pairs(self, time_travel_config):
-        skip = time_travel_config["num_diffusion_timesteps"] //\
-               time_travel_config["T_sampling"]
+    def _init_time_pairs(self, time_travel_config: dict[str, Any],
+                         num_diff_steps: int) \
+                         -> tuple[int, list[tuple[int, int]]]:
+        # Compute the time intervals of skipping (based on T sampling freq)
+        skip = num_diff_steps // time_travel_config.get("T_sampling", 100)
 
+        # Calculate times for schedule jumps
         times = self.get_schedule_jump(
-            time_travel_config["T_sampling"],
-            time_travel_config["travel_length"],
-            time_travel_config["travel_repeat"]
+            time_travel_config.get("T_sampling", 100),
+            time_travel_config.get("travel_length", 1),
+            time_travel_config.get("travel_repeat", 1)
         )
+
+        # Generate a list of schedule jump pairs
         time_pairs = list(zip(times[:-1], times[1:]))
 
         return skip, time_pairs
 
-    def dict2namespace(self, config):
+    def dict2namespace(self, config: dict[str, Any]) -> argparse.Namespace:
         """Converts dictionary to namespace"""
+
+        # Get the namespace form argparse
         namespace = argparse.Namespace()
 
         for key, val in config.items():
+            # Convert sub-dicts to sub-namespaces
             new_value = self.dict2namespace(val) \
                         if isinstance(val, dict) else val
+            
+            # Set the attribute for the namespace
             setattr(namespace, key, new_value)
 
         return namespace
 
-    def get_beta_schedule(self, beta_schedule, *, beta_start, beta_end, num_diffusion_timesteps):
-        def sigmoid(x):
+    def get_beta_schedule(self, beta_schedule: str, *, beta_start: float,
+                          beta_end: float, num_diff_steps: int) -> np.ndarray:
+        def sigmoid(x: np.ndarray) -> np.ndarray:
+            # Helper sigmoid function
             return 1 / (np.exp(-x) + 1)
 
         if beta_schedule == "quad":
-            betas = (
-                np.linspace(
-                    beta_start ** 0.5,
-                    beta_end ** 0.5,
-                    num_diffusion_timesteps,
-                    dtype=np.float64,
-                )
-                ** 2
-            )
+            # Generate betas in quad linspace
+            betas = np.linspace(beta_start ** 0.5,
+                                beta_end ** 0.5,
+                                num_diff_steps,
+                                dtype=np.float64) ** 2
+
         elif beta_schedule == "linear":
-            betas = np.linspace(
-                beta_start, beta_end, num_diffusion_timesteps, dtype=np.float64
-            )
+            # Generate betas in linear space
+            betas = np.linspace(beta_start,
+                                beta_end,
+                                num_diff_steps,
+                                dtype=np.float64)
         elif beta_schedule == "const":
-            betas = beta_end * np.ones(num_diffusion_timesteps, dtype=np.float64)
-        elif beta_schedule == "jsd":  
-            betas = 1.0 / np.linspace(
-                num_diffusion_timesteps, 1, num_diffusion_timesteps, dtype=np.float64
-            )
+            # Generate constant size betas based on beta_end
+            betas = beta_end * np.ones(num_diff_steps,
+                                       dtype=np.float64)
+        elif beta_schedule == "jsd":
+            # Generate betas in jsd linear space
+            betas = 1.0 / np.linspace(num_diff_steps,
+                                      1,
+                                      num_diff_steps,
+                                      dtype=np.float64)
         elif beta_schedule == "sigmoid":
-            betas = np.linspace(-6, 6, num_diffusion_timesteps)
+            # Generate betas in sigmoid affected linspace
+            betas = np.linspace(-6, 6, num_diff_steps)
             betas = sigmoid(betas) * (beta_end - beta_start) + beta_start
         else:
             raise NotImplementedError(beta_schedule)
-        assert betas.shape == (num_diffusion_timesteps,)
+        
+        # Ensure betas shape equals num diff steps
+        assert betas.shape == (num_diff_steps,)
         
         return betas
 
-    def get_schedule_jump(self, T_sampling, travel_length, travel_repeat):
+    def get_schedule_jump(self, T_sampling: int, travel_length: int,
+                          travel_repeat: int) -> list[int]:
+        # Create a jumps range, jumps dictionary and initialize ts list
         jumps_range = range(0, T_sampling - travel_length, travel_length)
         jumps = {i: travel_repeat - 1 for i in jumps_range}
         t, ts = T_sampling, []
 
         while t >= 1:
+            # Update ts
             t -= 1
             ts.append(t)
 
             if jumps.get(t, 0) <= 0:
+                # Skip this jump
                 continue
-
+            
+            # Subtract one
             jumps[t] -= 1
 
             for _ in range(travel_length):
+                # Update ts
                 t += 1
                 ts.append(t)
 
         return [*ts, -1]
     
-    def compute_alpha(self, beta, t):
+    def compute_alpha(self, beta: torch.Tensor, t: int) -> torch.Tensor:
+        # Concatinate zeros to beta and 
         beta = torch.cat([torch.zeros(1).to(beta.device), beta], dim=0)
         a = (1 - beta).cumprod(dim=0).index_select(0, t + 1).view(-1, 1, 1, 1)
+        
         return a
     
-    def to(self, device):
+    def to(self, device: str):
+        # Everything to device
         self.device = device
         self.model.to(device)
         self.betas = self.betas.to(device)
 
         return self
     
+    def eval(self):
+        # Set to eval mode
+        self.model.eval()
+    
     def load_state_dict(self, weights):
+        # Load weights for inner model
         self.model.load_state_dict(weights)
     
-    def parameters(self):
+    def parameters(self) -> Iterable:
+        # Just return model parmaeters
         return self.model.parameters()
+    
+    def freeze(self):
+        for param in self.parameters():
+            # Disable inner model grads
+            param.requires_grad = False
 
     @torch.no_grad()
-    def forward(self, imgs, masks, rand=None):
+    def forward(self, imgs: torch.Tensor, masks: torch.Tensor,
+                rand: torch.Tensor | None = None, show_progress: bool = False) \
+                -> torch.Tensor:
         x = torch.rand_like(imgs) if rand is None else rand
         n, x0_preds, xs, y = x.size(0), [], [x], imgs * masks
-        import tqdm
+        
+        pbar = tqdm.tqdm(self.time_pairs) if show_progress else self.time_pairs
         
         # reverse diffusion sampling
-        for i, j in tqdm.tqdm(self.time_pairs):
+        for i, j in pbar:
             i, j = i * self.skip, -1 if j * self.skip < 0 else j * self.skip
 
             if j < i: # normal sampling 
@@ -202,17 +245,16 @@ class DDNMInpainter(object):
                 c2 = (1 - at_next).sqrt() * ((1 - self.eta ** 2) ** 0.5)
 
                 # different from the paper, we use DDIM here instead of DDPM
-                xt_next = at_next.sqrt() * x0_t_hat + gamma_t * (c1 * torch.randn_like(x0_t) + c2 * et)
+                xt_next = at_next.sqrt() * x0_t_hat + gamma_t * \
+                          (c1 * torch.randn_like(x0_t) + c2 * et)
 
                 x0_preds.append(x0_t)
                 xs.append(xt_next)    
             else: # time-travel back
                 next_t = (torch.ones(n) * j).to(x.device)
                 at_next = self.compute_alpha(self.betas, next_t.long())
-                xt_next = at_next.sqrt() * x0_preds[-1] + torch.randn_like(x0_preds[-1]) * (1 - at_next).sqrt()
+                xt_next = at_next.sqrt() * x0_preds[-1] + \
+                          torch.randn_like(x0_preds[-1]) * (1 - at_next).sqrt()
                 xs.append(xt_next)
 
         return xs[-1].clip(-1, 1)
-    
-    def __call__(self, *args, **kwargs):
-        return self.forward(*args, **kwargs) 

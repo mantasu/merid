@@ -23,7 +23,7 @@ sys.path.append("src")
 from datasets.celeba_mask_hq_dataset import CelebaMaksHQModule
 from utils.training import compute_gamma, get_checkpoint_callback
 
-class SunglassesSegmenter(pl.LightningModule):
+class GlassesSegmenter(pl.LightningModule):
     def __init__(self, num_epochs: int = -1,
                  base_model: str = "deeplab",
                  is_base_pretrained: bool = False):
@@ -66,7 +66,7 @@ class SunglassesSegmenter(pl.LightningModule):
 
     def forward(self, x):
         # Pass the input through the segmentation model
-        out = self.base_model(x)["out"].squeeze()
+        out = self.base_model(x)["out"]
 
         return out
     
@@ -89,7 +89,7 @@ class SunglassesSegmenter(pl.LightningModule):
         x, y = batch
 
         # Forward pass + loss computation
-        loss = self.loss_fn(self(x), y)
+        loss = self.loss_fn(self(x).squeeze(1), y)
 
         # Log mini-batch train loss
         self.log("train_loss", loss)
@@ -100,7 +100,7 @@ class SunglassesSegmenter(pl.LightningModule):
                         batch_idx: int) -> dict[str, torch.Tensor]:
         # Get samples and predict
         x, y = batch
-        y_hat = self(x)
+        y_hat = self(x).squeeze(1)
 
         # Compute the mini-batch loss
         loss = self.loss_fn(y_hat, y)
@@ -127,7 +127,7 @@ class SunglassesSegmenter(pl.LightningModule):
                   batch_idx: int) -> dict[str, torch.Tensor]:
         # Get samples and predict
         x, y = batch
-        y_hat = self(x)
+        y_hat = self(x).squeeze(1)
 
         # Compute the mini-batch loss
         loss = self.loss_fn(y_hat, y)
@@ -177,27 +177,27 @@ class MiniSunglassesSegmenter(nn.Module):
 
 
 def main():
-    NUM_EPOCHS = 150
-    BASE_MODEL = "deeplab"
+    NUM_EPOCHS = 310
+    BASE_MODEL = "lraspp"
     LOAD_BASE_WEIGHTS = True
-    PATH = "checkpoints/sunglasses-sgmenter-" + BASE_MODEL + ".pth"
+    PATH = "checkpoints/sunglasses-segmenter-" + BASE_MODEL + ".pth"
 
     seed_everything(0, workers=True)
     torch.set_float32_matmul_precision("medium")
 
     # Setup model, datamodule and trainer params
-    model = SunglassesSegmenter(NUM_EPOCHS, BASE_MODEL, LOAD_BASE_WEIGHTS)
+    model = GlassesSegmenter(NUM_EPOCHS, BASE_MODEL, LOAD_BASE_WEIGHTS)
     datamodule = CelebaMaksHQModule()
     checkpoint_callback = get_checkpoint_callback(BASE_MODEL)
     
     # Initialize the trainer, train it using datamodule and finally test
     trainer = pl.Trainer(max_epochs=NUM_EPOCHS, accelerator="gpu",
                          callbacks=[checkpoint_callback])
-    trainer.fit(model, datamodule=datamodule)
+    trainer.fit(model, datamodule=datamodule, ckpt_path="checkpoints/lraspp-epoch=126.ckpt")
     trainer.test(ckpt_path="best", datamodule=datamodule)
 
     # Load the best model from saved checkpoints and save its weights
-    best_model = SunglassesSegmenter.load_from_checkpoint(checkpoint_callback.best_model_path, base_model=BASE_MODEL, is_base_pretrained=False)
+    best_model = GlassesSegmenter.load_from_checkpoint(checkpoint_callback.best_model_path, base_model=BASE_MODEL, is_base_pretrained=False)
     # best_model = SunglassesSegmenter.load_from_checkpoint("checkpoints/deeplab-epoch=00.ckpt", base_model=BASE_MODEL, is_base_pretrained=False)
     torch.save(best_model.state_dict(), PATH)
 

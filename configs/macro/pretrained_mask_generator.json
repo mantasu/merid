@@ -1,0 +1,12 @@
+{
+    "modules": {
+        "domain_adapter": {"name": "DomainAdapter", "is_torchvision_vgg": false, "vgg_weights": null},
+        "glasses_masker": {"name": "ResnetGeneratorMask", "input_nc": 64, "output_nc": 2, "norm": "BatchNorm2d"},
+        "shadows_masker": {"name": "ResnetGeneratorMask", "input_nc": 65, "output_nc": 2, "norm": "BatchNorm2d"}
+    },
+    "weights": {
+        "domain_adapter": {"path": ["checkpoints/pretrained.pt", "DA"], "freeze": true, "guest_fn": "fix_pesr_da"},
+        "glasses_masker": {"path": ["checkpoints/pretrained.pt", "GM"], "freeze": true},
+        "shadows_masker": {"path": ["checkpoints/pretrained.pt", "SM"], "freeze": true}
+    }
+}

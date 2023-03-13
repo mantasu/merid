@@ -2,20 +2,27 @@ import sys
 sys.path.append("src/architectures")
 sys.path.append("src/datasets")
 
+import os
 import cv2
 import inspect
 import torch
 import torch.nn as nn
 import torch.optim as optim
+import pytorch_lightning as pl
 import albumentations as A
 from typing import Type, Any
 
+from . import guest
 from .io import load_json
 from copy import deepcopy
-from collections import OrderedDict
-from torch.utils.data import random_split
 from pesr.segmentation import ResnetGeneratorMask
 from pesr.domain_adaption import DomainAdapter, PatchGAN
+from sunny.sunglasses_classifier import SunglassesClssifier
+from sunny.sunglasses_segmenter import GlassesSegmenter
+from nafnet.artefact_remover import NAFNetArtefactRemover
+from lafin.lafin_inpainter import LafinInpainter
+from ddnm.ddnm_inpainter import DDNMInpainter
+
 
 AVAILABLE_CLASSES = dict((
     *inspect.getmembers(A, inspect.isclass),
@@ -24,6 +31,11 @@ AVAILABLE_CLASSES = dict((
     ("ResnetGeneratorMask", ResnetGeneratorMask),
     ("DomainAdapter", DomainAdapter),
     ("PatchGAN", PatchGAN),
+    ("SunglassesClassifier", SunglassesClssifier),
+    ("GlassesSegmenter", GlassesSegmenter),
+    ("NAFNetArtefactRemover", NAFNetArtefactRemover),
+    ("LafinInpainter", LafinInpainter),
+    ("DDNMInpainter", DDNMInpainter)
 ))
 
 def verify_types(config: dict[str, Any]) -> dict[str, Any]:
@@ -56,9 +68,7 @@ def load_single(config: dict[str, Any]) -> Type | callable:
 def load_multi(config: dict[str, Any]) -> dict[str, Any]:
     return dict(map(lambda kv: (kv[0], load_single(kv[1])), config.items()))
 
-def load_weights(config: dict[str | list[str]],
-                 weight_fn: callable = None) -> \
-                 dict[str, dict | OrderedDict]:
+def load_weights(config: dict[str, dict[str, Any]]) -> dict[str, dict[str, Any]]:
     def recurse_by_key(checkpoint, remaining_keys):
         if remaining_keys == []:
             # Ending condition
@@ -69,168 +79,112 @@ def load_weights(config: dict[str | list[str]],
     # Store already loaded checkpoints (in case they are reused)
     loaded = {}
 
-    for key in config.keys():
-        if isinstance(config[key], bool):
+    for module_name, weights_config in config.items():
+        if (weights_path := weights_config.pop("path", None)) is None:
+            # No path
             continue
 
-        if isinstance(config[key], str):
-            # Set to list to generalize
-            config[key] = [config[key]]
-        
-        if config[key][0] not in loaded.keys():
-            # First str in a list is path to weights - load it
-            loaded[config[key][0]] = torch.load(config[key][0])
+        if not isinstance(weights_path, list):
+            # Convert to list for convenience
+            weights_path = [weights_path]
 
-            if weight_fn is not None:
-                # If weight pre-processing function is not none, apply it
-                loaded[config[key][0]] = weight_fn(loaded[config[key][0]])
+        if weights_path[0] not in loaded.keys():
+            # Load the actual weights (0th element is actual path)
+            loaded[weights_path[0]] = torch.load(weights_path[0])
+
+        # Get the actual state dictionary from the loaded weights file
+        weights = recurse_by_key(loaded[weights_path[0]], weights_path[1:])
         
-        # Reassign config item to loaded weights (further specified by keys)
-        config[key] = recurse_by_key(loaded[config[key][0]], config[key][1:])
+        if (guest_fn := weights_config.pop("guest_fn", None)) is not None:
+            # Apply a function to fix the weights if needed
+            weights = getattr(guest, guest_fn)(weights)
+
+        # Add weights key (after deleting path)
+        config[module_name]["weights"] = weights
     
     return config
 
-def load_modules_with_weights(modules: dict[str, nn.Module],
-                              weights: dict[str, dict | OrderedDict]) -> \
-                              dict[str, nn.Module]:
+def load_modules_with_weights(
+        modules: dict[str, nn.Module | pl.LightningModule | object],
+        weights: dict[str, dict[str, Any]]) -> \
+        dict[str, nn.Module | pl.LightningModule | object]:
+    """Loads modules with weights and optionally freezes
+
+    Loads modules in the provided dictionary with weights provided in
+    weights dictionary. Each key in modules dictionary should match the
+    key in weights dictionary, for the module instance that the
+    corresponding weights should be loaded.
+
+    Note:
+        If the any entry in weights dictionary contains "freeze" and it
+        is specified as true, please ensure that the created model (as
+        specified by the previous module config) has the functions
+        `eval` and `freeze`. These are already available in
+        :class:`~pl.LightningModule`, if your model is not of the same
+        type, please create the functions manually.
+
+    Args:
+        modules (dict[str, nn.Module | pl.LightningModule | object]):
+            The modules dictionary with keys specifying module names and
+            values specifying actual instances of those modules.
+        weights (dict[str, dict[str, Any]]): The weights dictionary with
+            keys specifying module names and values specifying weights
+            config dictionary. The latter typically contains 2 items:
+            "weights" - loaded torch weights, and "freeze" - whether
+            the module with or without loaded weights should be frozen.
+
+    Returns:
+        dict[str, nn.Module | pl.LightningModule | object]: A modules
+            dictionary which is the same as the one passed in arguments,
+            except the modules may optionally be loaded with weights
+            and/or frozen.
+    """
     for name in modules.keys():
-        if name in weights.keys():
-            # Load module with corresponding weights
-            modules[name].load_state_dict(weights[name])
+        if name in weights.keys() and weights[name].get("weights") is not None:
+            # Load module with corresponding weights (based on name)
+            # print(name, weights[name])
+            modules[name].load_state_dict(weights[name]["weights"])
         
-        if (k := f"freeze_{name}") in weights.keys() and weights[k]:
-            for param in modules[name].parameters():
-                # Freeze module weights if required
-                param.requires_grad = False
+        if weights.get("freeze", False):
+            # Ensure these exist
+            modules[name].eval()
+            modules[name].freeze()
     
     return modules
 
-def parse_model_config(config: dict[str, Any],
-                       weight_fn: callable = None) -> dict[str, Any]:
-    if "modules" in config.keys():
-        # Load the modules from modules config
-        modules = load_multi(config["modules"])
-        config["modules"] = modules
+def parse_model_config(config: dict[str, Any]) -> dict[str, Any]:
+    if (modules_config := config.pop("modules", None)) is not None:
+        # Load the modules from config (save var for weights)
+        config.update(modules := load_multi(modules_config))
     
-    if "weights" in config.keys() and "modules" in config.keys():
-        # Load the weights from weights config, use for modules
-        weights = load_weights(config["weights"], weight_fn)
-        modules = load_modules_with_weights(modules, weights)
-        config["modules"] = modules
+    if (weights_config := config.pop("weights", None)) is not None:
+        # Load the weights and use for modules
+        weights = load_weights(weights_config)
+        config.update(load_modules_with_weights(modules, weights))
 
-    if "training" in config.keys():
+    if (training_config := config.pop("training", None)) is not None:
         # Load training props from training config
-        training = load_multi(config["training"])
-        config["training"] = training
-
-    del config["weights"]
-    
-    # Flatten config (remove primary keys shown in if statements above)
-    config = {k: v for sub in config.values() for k, v in sub.items()}
+        config.update(load_multi(training_config))
 
     return config
 
-def create_transforms(configs):
-    transform = A.Compose([
-       load_single(transform_config) for transform_config in configs
-    ], additional_targets={"image1": "image", "mask1": "mask"})
-    return transform
-
-def parse_config(config: dict[str, Any]) -> dict[str, Any]:
+def parse_config(config_path: str | os.PathLike) -> dict[str, Any]:
     # Create parsing map
     PARSING_MAP = {
-        "mask_generator": lambda x: parse_model_config(x, fix_weights),
-        "mask_inpainter": parse_model_config,
-        "data": parse_data_config,
+        "mask_generator": parse_model_config,
+        "mask_retoucher": parse_model_config,
+        "mask_inpainter": parse_model_config
     }
+
+    # Load the config from given path
+    config = load_json(config_path)
 
     for key, _config in config.items():        
         if (macro := _config.get("macro", None)) is not None:
             # If contains macro, load it
-            config[key] = load_json(macro)
+            _config.update(load_json(macro))
         
         # Parse current config and reassign
         config[key] = PARSING_MAP[key](_config)
     
     return config
-
-def parse_data_config(config):
-    dataset = config["dataset"].copy()
-    
-    val_size = dataset.pop("val_size", None)
-    split_seed = dataset.pop("split_seed", 42)
-    transforms_train = config.get("transforms_train", [])
-    transforms_val = config.get("transforms_val", [])
-
-    if "img_size" in dataset.keys():
-        [height, width] = dataset.pop("img_size")
-        albumentation = {"name": "Resize", "height": height, "width": width}
-        transforms_train.insert(0, albumentation.copy())
-        transforms_val.insert(0, albumentation.copy())
-    
-    if transforms_train != []:
-        transforms_train = create_transforms(transforms_train)
-    else:
-        transforms_train = None
-    
-    if transforms_val != []:
-        transforms_val = create_transforms(transforms_val)
-    else:
-        transforms_val = None
-    
-    dataset["transforms_train"] = transforms_train
-    dataset["transforms_val"] = transforms_val
-
-    dataset = load_single(dataset)
-
-    val_size = int(len(dataset) * val_size)
-    train_size = len(dataset) - val_size
-    generator = torch.Generator().manual_seed(split_seed)
-    train_set, val_set = random_split(dataset, [train_size, val_size], generator)
-
-    parsed_data_config = {
-        "train_dataset": train_set,
-        "val_dataset": val_set
-    }
-
-    if "dataloader" in config.keys():
-        parsed_data_config["loader_kwargs"] = config["dataloader"].copy()
-    
-    return parsed_data_config
-
-def fix_weights(ckpt: dict) -> dict:
-    """Prepares the weights to be loaded from the original module
-
-    If DomainAdapter is created in the same way as described in the
-    paper (uses pretrained normalised VGG and 6 ResNet blocks), and the
-    original state dictionary is used to initialize its parameters, then
-    this fixes the pretrained state dictionary to contain only the
-    relevant weights for the domain adapter. In the original repository,
-    weights of subsequent VGG layers were saved, even though they were
-    not used in `forward` method.
-
-    Args:
-        ckpt (dict): The original loaded checkpoint
-    
-    Returns:
-        dict: A modified checkpoint at 'DA' entry
-    """
-    # Init the DA modules
-    modules = OrderedDict()
-    
-    # Copy over the initial VGG encodings but change the naming
-    modules["vgg_encoding.0.weight"] = ckpt["DA"]["enc_1.0.weight"]
-    modules["vgg_encoding.0.bias"] = ckpt["DA"]["enc_1.0.bias"]
-    modules["vgg_encoding.2.weight"] = ckpt["DA"]["enc_1.2.weight"]
-    modules["vgg_encoding.2.bias"] = ckpt["DA"]["enc_1.2.bias"]
-
-    for key in ckpt["DA"].keys():
-        if "enc_" not in key:
-            # Only keep non-enc modules
-            modules[key] = ckpt["DA"][key]
-    
-    # Reassign DA state
-    ckpt["DA"] = modules
-
-    return ckpt
-        

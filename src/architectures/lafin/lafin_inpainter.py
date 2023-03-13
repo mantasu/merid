@@ -7,7 +7,7 @@ class LafinInpainter(nn.Module):
     def __init__(self,
                  det_weights: str | None = None,
                  gen_weights: str | None = None,
-                 freeze: bool | None =None):
+                 freeze: bool | None = None):
         super().__init__()
 
         # Initialize landmark detector & inpainter

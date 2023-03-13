@@ -18,12 +18,12 @@ class SunglassesClssifier(pl.LightningModule):
         self.base_model = self.load_base_model(base_model, is_base_pretrained)
         self.loss_fn = nn.BCEWithLogitsLoss(pos_weight=torch.tensor([2]))
 
-        weights_path = True
+        # weights_path = True
         
-        if weights_path is not None:
-            weights = torch.load(weights_path)
-            del weights["loss_fn.pos_weight"]
-            self.load_state_dict(weights)
+        # if weights_path is not None:
+        #     weights = torch.load(weights_path)
+        #     del weights["loss_fn.pos_weight"]
+        #     self.load_state_dict(weights)
     
     def load_base_model(self, model: str, is_pretrained: bool):
         match model:

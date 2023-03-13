@@ -23,7 +23,7 @@ class InvertedResidualSEReduction(nn.Module):
         self.depthwise_conv = Conv2dNormActivation(
             in_channels=hidden_dim,
             out_channels=hidden_dim,
-            group=hidden_dim,
+            groups=hidden_dim,
             norm_layer=nn.InstanceNorm2d,
             activation_layer=nn.SiLU
         )
@@ -55,7 +55,7 @@ class NAFNetArtefactRemover(nn.Module):
         self.img2chan = self._make_to_chan_block(kwargs.pop("img_in", 3))
         self.msk2chan = self._make_to_chan_block(kwargs.pop("msk_in", 4))
         self.inp2chan = self._make_to_chan_block(kwargs.pop("inp_in", 3))
-        self.channel_joiner = nn.Sequential(nn.LayerNorm(), nn.LeakyReLU())
+        self.channel_joiner = nn.Sequential(nn.BatchNorm2d(3), nn.LeakyReLU())
         self.nafnet = NAFNet(**_kwargs)
 
         if nafnet_weights is not None:

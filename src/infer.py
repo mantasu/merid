@@ -94,10 +94,10 @@ if __name__ == "__main__":
     x1, x2, y1, y2 = next(it)
     sample = x1
 
-    from extra.sunglasses_classifier import SunglassesClssifier
-    sun = SunglassesClssifier("checkpoints/sunglasses-classifier-best.pth")
-    preds = sun(sample).sigmoid().round().squeeze()
-    print(preds)
+    # from extra.sunglasses_classifier import SunglassesClssifier
+    # sun = SunglassesClssifier("checkpoints/sunglasses-classifier-best.pth")
+    # preds = sun(sample).sigmoid().round().squeeze()
+    # print(preds)
     
 
 
@@ -109,13 +109,13 @@ if __name__ == "__main__":
     smooth_glasses = mask_glasses.copy()
     smooth_shadows = mask_shadows.copy()
 
-    from extra.sunglasses_classifier import MaskPostprocesser
-    pper = MaskPostprocesser("checkpoints/sunglasses-classifier-best.pth")
-    print(out_glasses.argmax(1).shape)
-    pper_mask = pper(x2, out_glasses.argmax(1).unsqueeze(1), out_shadows.argmax(1).unsqueeze(1))
+    # from extra.sunglasses_classifier import MaskPostprocesser
+    # pper = MaskPostprocesser("checkpoints/sunglasses-classifier-best.pth")
+    # print(out_glasses.argmax(1).shape)
+    # pper_mask = pper(x2, out_glasses.argmax(1).unsqueeze(1), out_shadows.argmax(1).unsqueeze(1))
 
 
-    for l, (is_sun, binary_glasses, binary_shadows) in enumerate(zip(preds, mask_glasses, mask_shadows)):
+    for l, (binary_glasses, binary_shadows) in enumerate(zip(mask_glasses, mask_shadows)):
         
         # binary_glasses = binary_erosion(binary_glasses, disk(1))
 
@@ -134,7 +134,8 @@ if __name__ == "__main__":
         # for i in range(3):
         #     binary_image = binary_erosion(binary_image, diamond(1))
 
-        if is_sun == 1:
+        # if is_sun == 1:
+        if False:
             # smooth_glasses[l] = binary_dilation(smooth_glasses[l], star(5))
             smooth_glasses[l] = binary_dilation(smooth_glasses[l], disk(5))
             smooth_glasses[l] = morphology.binary_closing(smooth_glasses[l], disk(20))
@@ -148,7 +149,7 @@ if __name__ == "__main__":
     smooth_both = (smooth_glasses | smooth_shadows)
     mask_both = (mask_glasses | mask_shadows)
 
-    smooth_both = pper_mask.squeeze().numpy().astype(np.uint8)
+    # smooth_both = pper_mask.squeeze().numpy().astype(np.uint8)
     print(smooth_both.shape)
 
     

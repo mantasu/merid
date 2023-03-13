@@ -5,6 +5,18 @@ from albumentations.pytorch import ToTensorV2
 def unnormalize(x: torch.Tensor,
                 mean: list[float, float, float] = [0.485, 0.456, 0.406], 
                 std: list[float, float, float] = [0.229, 0.224, 0.225]):
+    """
+    Unnormalize a Torch tensor with the given mean and standard deviation.
+    The tensor can be of shape (N, C, H, W) or (C, H, W).
+    """
+
+    mean = torch.tensor(mean, device=x.device, dtype=x.dtype).view(-1, 1, 1)
+    std = torch.tensor(std, device=x.device, dtype=x.dtype).view(-1, 1, 1)
+
+    if x.ndim == 4:
+        mean.unsqueeze_(0)
+        std.unsqueeze_(0)
+
     return x * std + mean
 
 def create_default_augmentation() -> A.Compose:

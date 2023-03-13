@@ -14,42 +14,49 @@ from utils.augment import unnormalize
 
 class RemGlass(pl.LightningModule):
     def __init__(self, config: dict[str, Any]):
+        super().__init__()
+        
         self.mask_generator = MaskGenerator(config["mask_generator"])
         self.mask_retoucher = MaskRetoucher(config["mask_retoucher"])
         self.mask_inpainter = MaskInpainter(config["mask_inpainter"])
 
-        if config.get("freeze_mask_generator", False):
-            self.mask_generator.freeze()
-            self.mask_generator.eval()
+        # if config.get("freeze_mask_generator", False):
+        #     self.mask_generator.freeze()
+        #     self.mask_generator.eval()
         
-        if config.get("freeze_mask_retoucher", False):
-            self.mask_retoucher.freeze()
-            self.mask_retoucher.eval()
+        # if config.get("freeze_mask_retoucher", False):
+        #     self.mask_retoucher.freeze()
+        #     self.mask_retoucher.eval()
         
-        if config.get("freeze_mask_inpainter", False):
-            self.mask_inpainter.freeze()
-            self.mask_inpainter.eval()
+        # if config.get("freeze_mask_inpainter", False):
+        #     self.mask_inpainter.freeze()
+        #     self.mask_inpainter.eval()
         
         self.train_target = "inpainter" # Others not supported
     
     def forward_before_retoucher(self, x):
         # Renormalize to same scale as in paper, predict masks for glasses
         generator_input = normalize(unnormalize(x), [.5, .5, .5], [.5, .5, .5])
-        mask_glasses, mask_shadows = self.mask_generator(generator_input, True)
+        out_glasses, out_shadows = self.mask_generator(generator_input)
 
-        return mask_glasses, mask_shadows
+        mask_glasses = out_glasses.argmax(1).unsqueeze(1).float()
+        mask_shadows = out_shadows.argmax(1).unsqueeze(1).float()
+
+        return mask_glasses, mask_shadows, out_glasses, out_shadows
     
     def forward_before_inpainter(self, x):
         # Get the 2 maps of the forward loop step before retoucher
-        mask_glasses, mask_shadows = self.forward_before_retoucher(x)
+        generator_out = self.forward_before_retoucher(x)
+        mask_glasses, mask_shadows, out_glasses, out_shadows = generator_out
         mask, is_sunglasses = self.mask_retoucher(x, mask_glasses, mask_shadows)
 
-        return mask, is_sunglasses
+        return mask, out_glasses, out_shadows, is_sunglasses
     
     def forward(self, x):
-        mask = self.forward_before_inpainter(x)
-        out = self.mask_inpainter(x, mask)
-        return out
+        out_retoucher = self.forward_before_inpainter(x)
+        x_inpainted = self.mask_inpainter(x, *out_retoucher)
+
+        return x_inpainted
     
     def process_inpainter_batch(self, batch):
         # batch:
