@@ -13,26 +13,21 @@ class MaskRetoucher(pl.LightningModule):
         self.sunglasses_segmenter = config.get("sunglasses_segmenter", None)
         self.register_buffer("kernel_closing", torch.from_numpy(disk(3)).float())
         self.register_buffer("kernel_dilation", torch.from_numpy(disk(1)).float())
-
-        # if config.get("freeze_sunglasses_predictor", False):
-        #     for param in self.sunglasses_predictor.params():
-        #         # Disable gradients to freeze
-        #         param.requires_grad = False
-            
-        #     # Set to evaluation mode if frozen
-        #     self.sunglasses_predictor.eval()
-        
-        # if config.get("freeze_sunglasses_segmenter", False):
-        #     for param in self.sunglasses_segmenter.params():
-        #         # Disable gradients to freeze
-        #         param.requires_grad = False
-            
-        #     # Set to evaluation mode if frozen
-        #     self.sunglasses_segmenter.eval()
+        self.segment_when = "only_if_sunglasses"
 
     def forward(self, x: torch.Tensor, mask_glasses: torch.Tensor,
                 mask_shadows: torch.Tensor) -> torch.Tensor:
-        mask_glasses, is_sunglasses = self.enhance_mask_if_sunglasses(x, mask_glasses)
+        
+        is_sunglasses = None
+
+        match self.segment_when:
+            case "only_if_sunglasses":
+                mask_glasses, is_sunglasses = self.enhance_mask_if_sunglasses(x, mask_glasses)
+            case "always":
+                mask_glasses = torch.logical_or(self.sunglasses_segmenter(x).sigmoid().round(), mask_glasses).float()
+            case "never":
+                mask_glasses = mask_glasses
+        
         masks = self.apply_morphology(mask_glasses, mask_shadows)
         mask = torch.logical_or(*masks).float()
         

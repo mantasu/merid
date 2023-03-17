@@ -10,11 +10,11 @@ def compute_gamma(num_epochs: int, start_lr: float = 1e-3, end_lr: float = 5e-5)
     
     return (end_lr / start_lr) ** (1 / num_epochs)
 
-def get_checkpoint_callback(model_name: str = "my-model") -> ModelCheckpoint:
+def get_checkpoint_callback(model_name: str = "my-model", monitor="val_loss") -> ModelCheckpoint:
     return ModelCheckpoint(
         dirpath="checkpoints",
-        filename=model_name + "-{epoch:02d}",
+        filename=model_name + "-{epoch:02d}-{" + monitor + ":.4f}'",
         every_n_epochs=1,
-        monitor="val_loss",
+        monitor=monitor,
         mode="min"
     )

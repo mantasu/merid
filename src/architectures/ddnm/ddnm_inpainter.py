@@ -3,12 +3,13 @@ import torch
 import argparse
 import numpy as np
 import torch.nn as nn
+import pytorch_lightning as pl
 
 from .models import Model
 from typing import Iterable, Any
 
 
-class DDNMInpainter(object):
+class DDNMInpainter(pl.LightningModule):
     def __init__(self,
                  num_diff_steps: int = 1000,
                  image_size: int = 256,
@@ -17,15 +18,19 @@ class DDNMInpainter(object):
                  config_model: dict[str, Any] = {},
                  config_diffusion: dict[str, Any] = {},
                  config_time_travel: dict[str, Any] = {}):
+        super().__init__()
         # Assign basics
         self.eta = eta
-        self.device = device
+        # self.device = device
 
         # Acquire specific diffusion attributes like model and schedules
         self.model = self._init_model(config_model, image_size, num_diff_steps)
-        self.betas = self._init_betas(config_diffusion, num_diff_steps)
+        betas = self._init_betas(config_diffusion, num_diff_steps)
+        self.register_buffer("betas", betas)
         out = self._init_time_pairs(config_time_travel, num_diff_steps)
         self.skip, self.time_pairs = out
+
+        # print(self.skip, self.betas, self.time_pairs)
 
     def _init_model(self, model_config: dict[str, Any], image_size: int,
                     num_diff_steps: int) -> nn.Module:
@@ -50,17 +55,21 @@ class DDNMInpainter(object):
             "model": dict(DEFAULT_MODEL_CONFIG, **model_config),
         }
 
+        # print(dummy_dict["diffusion"]["num_diffusion_timesteps"])
+
         # Convert config to namespace and make model
         model_config = self.dict2namespace(dummy_dict)
-        model = Model(model_config).to(self.device)
+        model = Model(model_config)# .to(self.device)
         
         return model
     
-    def __call__(self, *args, **kwargs):
-        return self.forward(*args, **kwargs) 
+    def __call__(self, imgs: torch.Tensor, masks: torch.Tensor,
+                rand: torch.Tensor | None = None, show_progress: bool = False):
+        return self.forward(imgs, masks, rand, show_progress)
 
     def _init_betas(self, diffusion_config: dict[str, Any],
                     num_diff_steps: int) -> torch.Tensor:
+        print("hi", num_diff_steps)
         # Get beta schedule parameter
         betas = self.get_beta_schedule(
             beta_schedule=diffusion_config.get("beta_schedule", "linear"),
@@ -69,7 +78,7 @@ class DDNMInpainter(object):
             num_diff_steps=num_diff_steps,
         )
         # Convert beta schedule parameter to torch tensor
-        betas = torch.from_numpy(betas).float().to(self.device)
+        betas = torch.from_numpy(betas).float() # .to(self.device)
 
         return betas
     
@@ -176,18 +185,18 @@ class DDNMInpainter(object):
     
     def compute_alpha(self, beta: torch.Tensor, t: int) -> torch.Tensor:
         # Concatinate zeros to beta and 
-        beta = torch.cat([torch.zeros(1).to(beta.device), beta], dim=0)
+        beta = torch.cat([torch.zeros(1, device=beta.device), beta], dim=0)
         a = (1 - beta).cumprod(dim=0).index_select(0, t + 1).view(-1, 1, 1, 1)
         
         return a
     
-    def to(self, device: str):
-        # Everything to device
-        self.device = device
-        self.model.to(device)
-        self.betas = self.betas.to(device)
+    # def to(self, device: str):
+    #     # Everything to device
+    #     self.device = device
+    #     self.model.to(device)
+    #     self.betas = self.betas.to(device)
 
-        return self
+    #     return self
     
     def eval(self):
         # Set to eval mode
@@ -210,10 +219,22 @@ class DDNMInpainter(object):
     def forward(self, imgs: torch.Tensor, masks: torch.Tensor,
                 rand: torch.Tensor | None = None, show_progress: bool = False) \
                 -> torch.Tensor:
-        x = torch.rand_like(imgs) if rand is None else rand
+        x = torch.randn_like(imgs) if rand is None else rand
+        # x = torch.randn_like(imgs)
         n, x0_preds, xs, y = x.size(0), [], [x], imgs * masks
         
-        pbar = tqdm.tqdm(self.time_pairs) if show_progress else self.time_pairs
+        time_pairs = self.time_pairs# [int(len(self.time_pairs) * .75):] if rand is not None else self.time_pairs
+        pbar = tqdm.tqdm(time_pairs) if show_progress else time_pairs
+
+        # print(xs[-1][(1-masks).bool().repeat(1, 3, 1, 1)].shape)
+        # is_less_than_zero = (means := xs[-1][(1-masks).bool().repeat(1, 3, 1, 1)].mean(dim=(1, 2, 3))) < 0
+        # print(xs[-1].shape, means.shape, is_less_than_zero.shape)
+        # xs[-1][is_less_than_zero] += means[is_less_than_zero]
+
+        # r = torch.randn_like(imgs)
+        # print(r.min(), r.max(), r.mean(), x.min(), x.max(), x.mean())
+        # print(x[(1-masks).bool().repeat(1, 3, 1, 1)].mean())
+
         
         # reverse diffusion sampling
         for i, j in pbar:
@@ -256,5 +277,7 @@ class DDNMInpainter(object):
                 xt_next = at_next.sqrt() * x0_preds[-1] + \
                           torch.randn_like(x0_preds[-1]) * (1 - at_next).sqrt()
                 xs.append(xt_next)
+        
+        # print(xs[-1][(1-masks).bool().repeat(1, 3, 1, 1)].mean())
 
-        return xs[-1].clip(-1, 1)
+        return xs[-1]

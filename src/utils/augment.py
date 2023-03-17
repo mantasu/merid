@@ -44,6 +44,6 @@ def create_default_augmentation() -> A.Compose:
                 A.GaussNoise(var_limit=(10.0, 50.0)),
             ], p=0.5),
             A.CoarseDropout(max_holes=5, p=0.3),
-            A.Normalize(),
-            ToTensorV2(),
-        ])
+            # A.Normalize(),
+            # ToTensorV2(),
+        ], additional_targets={"no_glasses": "image", "inpainted": "image"})

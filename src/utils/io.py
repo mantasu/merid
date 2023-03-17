@@ -101,7 +101,7 @@ def save_image(image: torch.Tensor | np.ndarray | Image.Image,
     """
     if isinstance(image, torch.Tensor):
         # Convert properly from tensor
-        image = tensor_to_image(image)
+        image = tensor_to_image(image, as_pil=True)
     elif isinstance(image, np.ndarray):
         # In-built from array method
         image = Image.fromarray(image)

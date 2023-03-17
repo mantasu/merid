@@ -22,11 +22,12 @@ def get_example():
     from albumentations.pytorch import ToTensorV2
 
     images = [
-        "data/celeba/val/glasses/162786.jpg",
+        # "data/celeba/val/glasses/162786.jpg",
         # "data/celeba/val/glasses/163521.jpg",
         "data/celeba/val/glasses/162938.jpg",
-        # "data/celeba/val/glasses/182601.jpg",
-        "data/synthetic/val/glasses/img-Glass001-401-1_neutral-3-industrial_pipe_and_valve_02-346-all.jpg",
+        "data/celeba/val/glasses/182601.jpg",
+        "data/celeba/val/glasses/163610.jpg",
+        # "data/synthetic/val/glasses/img-Glass001-401-1_neutral-3-industrial_pipe_and_valve_02-346-all.jpg",
         # "data/synthetic/val/glasses/img-Glass001-401-15_lip_funneler-0-balcony-115-all.jpg"
     ]
 
@@ -54,12 +55,12 @@ if __name__ == "__main__":
 
     out_list = [unnormalize(x), mask_glasses, mask_shadows, mask, img_new]
     
-    print(mask.shape)
+    # print(mask.shape)
     print(is_sunglasses.shape, is_sunglasses)
-    print(out_glasses.shape)
-    print(out_shadows.shape)
-    print(mask_glasses.shape)
-    print(mask_shadows.shape)
+    # print(out_glasses.shape)
+    # print(out_shadows.shape)
+    # print(mask_glasses.shape)
+    # print(mask_shadows.shape)
     
 
     import matplotlib.pyplot as plt

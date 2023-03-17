@@ -5,7 +5,7 @@
     "mask_inpainter": {
         "modules": {
             "main_inpainter": {"name": "LafinInpainter", "det_weights": "checkpoints/landmark_detector.pth", "gen_weights": "checkpoints/InpaintingModel_gen.pth"},
-            "supp_inpainter": {"name": "DDNMInpainter", "num_diff_steps": 1000, "image_size": 256},
+            "supp_inpainter": {"name": "DDNMInpainter", "num_diff_steps": 1000, "image_size": 256, "config_time_travel": {"T_sampling": 30}, "config_diffusion": {"beta_schedule": "sigmoid"}},
             "post_processer": {"name": "NAFNetArtefactRemover", "nafnet_weights": "checkpoints/NAFNet-SIDD-width32.pth", "width": 32, "middle_blk_num": 12, "enc_blk_nums": [2, 2, 4, 8], "dec_blk_nums": [2, 2, 2, 2]}
         },
         "weights": {

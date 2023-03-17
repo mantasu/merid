@@ -1,0 +1,13 @@
+{
+    "mask_generator": {"macro": "configs/macro/pretrained_mask_generator.json"},
+    "mask_retoucher": {"macro": "configs/macro/pretrained_mask_retoucher.json"},
+
+    "mask_inpainter": {
+        "modules": {
+            "main_inpainter": {"name": "LafinInpainter", "det_weights": "checkpoints/landmark_detector.pth", "gen_weights": "checkpoints/InpaintingModel_gen.pth"}
+        },
+        "weights": {
+            "main_inpainter": {"path": null, "freeze": true}
+        }
+    }
+}

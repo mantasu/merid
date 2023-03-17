@@ -3,9 +3,9 @@ import torch
 import pytorch_lightning as pl
 
 from typing import Any
-from mask_generator import MaskGenerator
-from mask_retoucher import MaskRetoucher
-from mask_inpainter import MaskInpainter
+from .mask_generator import MaskGenerator
+from .mask_retoucher import MaskRetoucher
+from .mask_inpainter import MaskInpainter
 
 from torchvision.transforms.functional import normalize
 
@@ -18,7 +18,7 @@ class RemGlass(pl.LightningModule):
         
         self.mask_generator = MaskGenerator(config["mask_generator"])
         self.mask_retoucher = MaskRetoucher(config["mask_retoucher"])
-        self.mask_inpainter = MaskInpainter(config["mask_inpainter"])
+        self.mask_inpainter = None #  MaskInpainter(config["mask_inpainter"])
 
         # if config.get("freeze_mask_generator", False):
         #     self.mask_generator.freeze()
@@ -56,7 +56,7 @@ class RemGlass(pl.LightningModule):
         out_retoucher = self.forward_before_inpainter(x)
         x_inpainted = self.mask_inpainter(x, *out_retoucher)
 
-        return x_inpainted
+        return x_inpainted, out_retoucher[0]
     
     def process_inpainter_batch(self, batch):
         # batch:

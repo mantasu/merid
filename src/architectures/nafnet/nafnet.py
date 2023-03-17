@@ -166,7 +166,7 @@ class NAFNet(nn.Module):
 
         self.padder_size = 2 ** len(self.encoders)
 
-    def forward(self, inp):
+    def forward(self, inp, orig=None):
         B, C, H, W = inp.shape
         inp = self.check_image_size(inp)
 
@@ -187,7 +187,7 @@ class NAFNet(nn.Module):
             x = decoder(x)
 
         x = self.ending(x)
-        x = x + inp
+        # x += inp if orig is None else orig
 
         return x[:, :, :H, :W]
 
