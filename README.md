@@ -29,22 +29,38 @@ sudo apt-get install p7zip-full unzip
 
 Once all the datasets are downloaded and preprocessed, the data structure should loke as follows:
 ```
-├── data                <- The data directory under root
+data                             <- The data directory under project
 │   ├── celeba
-│   │   └── train_x     <- 256x256 images with glasses
-|   |   └── train_y     <- 256x256 images without glasses
+│   │   └── test
+│   │   |   └── no_glasses       <- 256x256 images of poeple without sunglasses
+│   │   |   └── glasses          <- 256x256 images of poeple with sunglasses
+│   │   |   └── masks            <- 256x256 images of glasses masks
+│   │   |
+|   |   └── train
+│   │   |   └── no_glasses       <- 256x256 images of poeple without sunglasses
+│   │   |   └── glasses          <- 256x256 images of poeple with sunglasses
+│   │   |   └── masks            <- 256x256 images of glasses masks
+│   │   |
+|   |   └── val
+│   │       └── no_glasses       <- 256x256 images of poeple without sunglasses
+│   │       └── glasses          <- 256x256 images of poeple with sunglasses
+│   │       └── masks            <- 256x256 images of glasses masks
 │   │
-│   ├── lfw
-│   │   └── test_x      <- 256x256 images with glasses
-|   |   └── test_y      <- 256x256 images without glasses
-│   │
+│   ├── celeba-mask-hq
+│   │   └── test                 <- Same as celeba except without no_glasses
+|   |   └── train                <- Same as celeba except without no_glasses
+|   |   └── val                  <- Same as celeba except without no_glasses
+|   |
 │   ├── meglass
-│   │   └── test_x      <- 256x256 images with glasses
-|   |   └── test_y      <- 256x256 images without glasses
-│   │
+│   │   └── test                 <- Same as celeba except without masks
+|   |
+│   ├── lfw
+│   │   └── test                 <- Same as celeba except without masks
+|   |
 │   ├── synthetic
-│   │   └── train_x     <- 256x256 images with glasses
-|   |   └── train_y     <- 256x256 masks and images without glasses
+│   │   └── test                 <- Same as celeba
+|   |   └── train                <- Same as celeba
+|   |   └── val                  <- Same as celeba
 
 ```
 
@@ -112,15 +128,17 @@ Once all the datasets are downloaded and preprocessed, the data structure should
 <details><summary><h3>Preparing MeGlass</h3></summary>
 
 1. Download the files from Baidu Yun and Github:
-    * Download `MeGlass_ori.zip` from [here](https://pan.baidu.com/s/17EBZz3LkQzyn44VL45udTg) and place it under `./data/meglass/MeGlass_ori.zip`
-    * Download all `meta.txt` from [here](https://github.com/cleardusk/MeGlass) and place it under `./data/meglass/meta.txt`
+    * Download `MeGlass_ori.zip` from [here](https://pan.baidu.com/s/17EBZz3LkQzyn44VL45udTg) and place it under `data/meglass/MeGlass_ori.zip`
+    * Download all `.txt` files from [here](https://github.com/cleardusk/MeGlass/tree/master/test) and place them under `data/meglass/*.txt`
+    * Download the 68 landmarks predictor from [here](http://dlib.net/files/shape_predictor_68_face_landmarks.dat.bz2) and place it under `data/meglass/shape_predictor_68_face_landmarks.dat.bz2`
 2. Unzip the data
     ```bash
-    unzip ./data/meglass/MeGlass_ori.zip -d ./data/meglass/
+    unzip data/meglass/MeGlass_ori.zip -d data/meglass/
+    bunzip2 data/meglass/shape_predictor_68_face_landmarks.dat.bz2
     ```
-3. Split the dataset:
+3. Crop, align and split to glasses/no-glasses:
     ```bash
-    python ./scripts/split.py --dataset meglass --resize_h 256 --resize_w 256
+    python scripts/preprocess_meglass.py
     ```
 4. Clean up the directory:
     ```bash

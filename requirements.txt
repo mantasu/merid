@@ -11,3 +11,5 @@ torch-tb-profiler
 ipykernel
 albumentations
 kornia
+CMake
+dlib
