@@ -6,11 +6,11 @@ from utils.io import load_image, tensor_to_image
 from albumentations.pytorch import ToTensorV2
 
 from utils.config import parse_config
-from architectures.recolorizer import Recolorizer
-from datasets.colorize_dataset import ColorizeDataModule
+from merid.recolorizer import Recolorizer
+from colorize_data import ColorizeDataModule
 from utils.augment import unnormalize
 import matplotlib.pyplot as plt
-from utils.convert import tensor_to_image
+from utils.image_tools import tensor_to_image
 from infer2 import get_example, parse_arguments
 
 from architectures.remglass import RemGlass

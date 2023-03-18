@@ -20,7 +20,7 @@ from torchvision.models.segmentation import (
 )
 
 sys.path.append("src")
-from datasets.celeba_mask_hq_dataset import CelebaMaksHQModule
+from data.celeba_mask_hq_dataset import CelebaMaksHQModule
 from utils.training import compute_gamma, get_checkpoint_callback
 
 class GlassesSegmenter(pl.LightningModule):

@@ -4,7 +4,7 @@ import torch
 import albumentations as A
 import pytorch_lightning as pl
 
-from .base_dataset import BaseDataset
+from .base_data import BaseDataset
 from torch.utils.data import DataLoader
 
 sys.path.append("src")

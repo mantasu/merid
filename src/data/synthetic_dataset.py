@@ -7,7 +7,7 @@ import pytorch_lightning as pl
 
 sys.path.append("src")
 
-from base_dataset import BaseDataset
+from base_data import BaseDataset
 from utils.io import load_image
 
 class SyntheticDataset(BaseDataset):

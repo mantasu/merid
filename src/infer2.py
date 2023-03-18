@@ -23,18 +23,18 @@ def parse_arguments():
 def get_example():
 
     images = [
-        # "data/celeba/val/glasses/162786.jpg",
-        # "data/celeba/val/glasses/163521.jpg",
-        # "data/celeba/val/glasses/162938.jpg",
-        # "data/celeba/val/glasses/182601.jpg",
+        "data/celeba/val/glasses/162786.jpg",
+        "data/celeba/val/glasses/163521.jpg",
+        "data/celeba/val/glasses/162938.jpg",
+        "data/celeba/val/glasses/182601.jpg",
         "data/celeba/val/glasses/163610.jpg",
-        # "data/celeba/test/glasses/182955.jpg",
-        # "data/celeba/test/glasses/183090.jpg",
+        "data/celeba/test/glasses/182955.jpg",
+        "data/celeba/test/glasses/183090.jpg",
         # "data/synthetic/val/glasses/img-Glass001-407-8_jaw_right-1-cloud_layers-280-all.jpg",
-        "data/synthetic/val/sunglasses/img-Glass001-407-9_jaw_forward-3-modern_buildings_night-155-sunglasses.jpg",
+        # "data/synthetic/val/sunglasses/img-Glass001-407-9_jaw_forward-3-modern_buildings_night-155-sunglasses.jpg",
         # "data/synthetic/val/glasses/img-Glass001-413-1_neutral-2-carpentry_shop_02-198-all.jpg",
-        "data/synthetic/val/glasses/img-Glass001-401-1_neutral-3-industrial_pipe_and_valve_02-346-all.jpg",
-        "data/synthetic/val/glasses/img-Glass001-401-15_lip_funneler-0-balcony-115-all.jpg"
+        # "data/synthetic/val/glasses/img-Glass001-401-1_neutral-3-industrial_pipe_and_valve_02-346-all.jpg",
+        # "data/synthetic/val/glasses/img-Glass001-401-15_lip_funneler-0-balcony-115-all.jpg"
     ]
 
     transform = A.Compose([A.Normalize(), ToTensorV2()], additional_targets={f"image{i}": "image" for i in range(len(images))})
@@ -57,7 +57,7 @@ if __name__ == "__main__":
         mask_glasses, mask_shadows, out_glasses, out_shadows = remglass.forward_before_retoucher(x)
         mask, out_glasses, out_shadows, is_sunglasses = remglass.forward_before_inpainter(x)
         inpainter = LafinInpainter(**{"det_weights": "checkpoints/landmark_detector.pth", "gen_weights": "checkpoints/InpaintingModel_gen.pth"})
-        post_processer = MaskInpainter.load_from_checkpoint("checkpoints/unetplusplus-epoch=08-val_loss_mse=0.0021'.ckpt")
+        post_processer = MaskInpainter.load_from_checkpoint("checkpoints/effunetplusplus-epoch=03-val_loss_mse=0.0020'.ckpt")
         img_inp = inpainter.forward(unnormalize(x), mask)
 
         imgs, tr = [], A.Compose([A.Normalize(), ToTensorV2()])
@@ -81,7 +81,7 @@ if __name__ == "__main__":
     
 
     import matplotlib.pyplot as plt
-    from utils.convert import tensor_to_image
+    from utils.image_tools import tensor_to_image
 
     for i in range(len(mask_glasses)):
         for j, out in enumerate(out_list):

@@ -12,7 +12,7 @@ from torchvision.models.segmentation.lraspp import LRASPPHead
 
 sys.path.append("src")
 from utils.guest import fix_pesr_da
-from architectures.pesr.domain_adaption import DomainAdapter
+from models.pesr.domain_adaption import DomainAdapter
 
 from torchvision.models.mobilenetv2 import InvertedResidual
 # from segmentation_models_pytorch.efficientunetplusplus.model import EfficientUn
@@ -103,19 +103,22 @@ class NAFNetArtefactRemover(nn.Module):
         # self.resunet = ResUnetPlusPlus(in_channels=7, decoder_attention_type="se")
         
         # self.effunet = UnetPlusPlus(encoder_name="resnet50", in_channels=3)
-        # self.effunet = EfficientUnetPlusPlus(in_channels=7)
+        # 
 
         # VERSION 1
         # self.unet = UnetPlusPlus(encoder_name="timm-tf_efficientnet_lite0", in_channels=7, classes=1)
 
         # VERSION 2
-        self.nafnet = NAFNet(**{"width": 32, "middle_blk_num": 12, "enc_blk_nums": [2, 2, 4, 8], "dec_blk_nums": [2, 2, 2, 2]})
+        # self.nafnet = NAFNet(**{"width": 32, "middle_blk_num": 12, "enc_blk_nums": [2, 2, 4, 8], "dec_blk_nums": [2, 2, 2, 2]})
 
-        if nafnet_weights is not None:
-            self.nafnet.load_state_dict(torch.load(nafnet_weights)["params"])
+        # if nafnet_weights is not None:
+        #     self.nafnet.load_state_dict(torch.load(nafnet_weights)["params"])
         
-        self.nafnet.intro = nn.Conv2d(7, 32, kernel_size=3, padding=1)
-        self.nafnet.ending = nn.Conv2d(32, 1, kernel_size=3, padding=1)
+        # self.nafnet.intro = nn.Conv2d(7, 32, kernel_size=3, padding=1)
+        # self.nafnet.ending = nn.Conv2d(32, 1, kernel_size=3, padding=1)
+
+        # VERSION 3
+        self.effunet = EfficientUnetPlusPlus(in_channels=7)
     
     def _make_to_chan_block(self, in_channels):
         return InvertedResidualSEReduction(
@@ -152,7 +155,7 @@ class NAFNetArtefactRemover(nn.Module):
         # out = (self.effunet(chans).tanh() + 1) / 2
 
         out = unnormalize(img_inpainted).mean(dim=1, keepdim=True)
-        out[mask.round().bool()] += self.nafnet(chans3)[mask.round().bool()]
+        out[mask.round().bool()] += self.effunet(chans3)[mask.round().bool()]
         
         # out[mask.round().bool()] += [mask.round().bool()]
         

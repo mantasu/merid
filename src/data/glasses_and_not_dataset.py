@@ -2,7 +2,7 @@ import os
 import torch
 import albumentations as A
 
-from base_dataset import BaseDataset
+from base_data import BaseDataset
 from base_datamodule import BaseDataModule
 from utils.io import load_image
 

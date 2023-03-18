@@ -20,10 +20,10 @@ sys.path.append("src")
 
 from utils.training import get_checkpoint_callback, compute_gamma
 from utils.augment import unnormalize
-from utils.convert import tensor_to_image, image_to_tensor
+from utils.image_tools import tensor_to_image, image_to_tensor
 from utils.io import load_image
-from datasets.nafnet_dataset import NafnetDataModule
-from architectures.recolorizer import Recolorizer
+from data.nafnet_dataset import NafnetDataModule
+from merid.recolorizer import Recolorizer
 # from .ddnm.ddnm_inpainter import DDNMInpainter
 
 
@@ -352,7 +352,7 @@ class MaskInpainter(pl.LightningModule):
 
 def main():
     NUM_EPOCHS = 10
-    BASE_MODEL = "unetplusplus"
+    BASE_MODEL = "effunetplusplus"
     PATH = "checkpoints/inpainter-" + BASE_MODEL + ".pth"
 
     seed_everything(0, workers=True)

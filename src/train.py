@@ -64,7 +64,7 @@ if __name__ == "__main__":
     
 
     import matplotlib.pyplot as plt
-    from utils.convert import tensor_to_image
+    from utils.image_tools import tensor_to_image
 
     for i in range(len(mask_glasses)):
         for j, out in enumerate(out_list):
