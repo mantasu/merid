@@ -64,7 +64,9 @@ data                             <- The data directory under project
 
 ```
 
-<details><summary><h3>Preparing CelebA Mask HQ (optional)</h3></summary>
+<details><summary><h3>Preparing Training Datsets</h3></summary>
+
+#### CelebA Mask HQ (optional)
 
 1. Download the files from Google Drive:
     * Download `CelebAMask-HQ.zip` folder from [here](https://drive.google.com/file/d/1badu11NqxGf6qM3PTTooQDJvQbejgbTv/view) and put it under `./data/celeba-mask-hq/CelebAMask-HQ.zip`
@@ -82,15 +84,15 @@ data                             <- The data directory under project
     rm -rf data/celeba-mask-hq/CelebAMask-HQ data/celeba-mask-hq/CelebAMask-HQ.zip
     ```
 
-</details>
-
-<details><summary><h3>Prepareing Synthetic Dataset</h3></summary>
+#### Synthetic
 
 1. Download the files from Google Drive:
     * Download `ALIGN_RESULT_V2.zip` from [here](https://drive.google.com/file/d/1X1qkozQbVyz5lUA8xd-lYfy1jauOji46/view) and place it under `data/synthetic/ALIGN_RESULT_V2.zip`
+    * Download `synthetic_augment.zip` from [here](https://drive.google.com/file/d/1wqpiSaoiuWEm8fi2xKne40jtdpQlItGR/view?usp=sharing) and place it under `data/synthetic/synthetic_augment.zip`
 2. Unzip the data
     ```bash
     unzip data/synthetic/ALIGN_RESULT_v2.zip -d data/synthetic
+    unzip data/synthetic/synthetic_augment.zip -d data/synthetic
     ```
 3. Generate shadow labels and split to glasses and their labels:
     ```bash
@@ -98,16 +100,16 @@ data                             <- The data directory under project
     ```
 4. Cleanup the workspace:
     ```bash
-    rm -rf ./data/synthetic/ALIGN_RESULT_v2 data/synthetic/ALIGN_RESULT_v2.zip
+    rm -rf data/synthetic/ALIGN_RESULT_v2 data/synthetic/ALIGN_RESULT_v2.zip data/synthetic/synthetic_augment.zip
     ```
 
 </details>
 
-<details><summary><h3>Preparing CelebA</h3></summary>
+#### CelebA
 
 1. Download the files from Google Drive:
     * Download `img_celeba.7z` folder from [here](https://drive.google.com/drive/folders/0B7EVK8r0v71peklHb0pGdDl6R28?resourcekey=0-f5cwz-nTIQC3KsBn3wFn7A) and put it under `./data/celeba/img_celeba.7z`
-    * Download `annotations.zip` file from [here](https://drive.google.com/file/d/1xd-d1WRnbt3yJnwh5ORGZI3g-YS-fKM9/view) and put it under `./data/celeba/annotations.zip`
+    * Download `annotations.zip` file from [here](https://drive.google.com/file/d/1xd-d1WRnbt3yJnwh5ORGZI3g-YS-fKM9/view) and put it under `data/celeba/annotations.zip` (Note keep `standard_landmark_68pts.txt` for **LFW** and **MeGlass** datasets)
 3. Unzip the data:
     ```bash
     7z x data/celeba/img_celeba.7z/img_celeba.7z.001 -o./data/celeba
@@ -119,22 +121,69 @@ data                             <- The data directory under project
     ```
 5. Clean up
     ```bash
-    rm -rf ./data/celeba/img_celeba.7z ./data/celeba/img_celeba ./data/celeba/aligned
-    rm ./data/celeba/annotations.zip ./data/celeba/*.txt
+    rm -rf data/celeba/img_celeba.7z data/celeba/img_celeba
+    rm data/celeba/annotations.zip data/celeba/*.txt
     ```
 
 </details>
 
-<details><summary><h3>Preparing MeGlass</h3></summary>
+
+<details><summary><h3>Preparing Test Datsets</h3></summary>
+
+### FFHQ
+
+1. Download the resized data from Kaggle, face model from GitHub and its weights form Google Drive:
+    * Download `archive.zip` from [here](https://www.kaggle.com/datasets/xhlulu/flickrfaceshq-dataset-nvidia-resized-256px) and put it under `data/ffhq/archive.zip`
+    * Download `face-parsing.PyTorch-master.zip` from [here](https://github.com/zllrunning/face-parsing.PyTorch) and place it under `data/ffqh/face-parsing.PyTorch-master.zip`
+    * Download `79999_iter.pth` from [here](https://drive.google.com/file/d/154JgKpzCPW82qINcVieuPH3fZ2e0P812/view) and put it under `data/ffhq/79999_iter.pth`
+2. Unzip the data:
+    ```bash
+    unzip data/ffhq/archive.zip -d data/ffhq
+    unzip data/ffhq/face-parsing.PyTorch-master.zip -d data/ffhq
+    ```
+3. Crop, align and split to glasses/no-glasses:
+    ```bash
+    python scripts/preprocess_ffhq.py
+    ```
+4. Clean up
+    ```bash
+    rm -rf data/ffhq/resized data/ffhq/face-parsing.PyTorch-master
+    rm data/ffhq/archive.zip data/ffhq/face-parsing.PyTorch-master.zip data/ffhq/79999_iter.pth
+    ```
+
+### LFW
+
+1. Download the files from the official host:
+    * Download `lfw.tgz` from [here](http://vis-www.cs.umass.edu/lfw/lfw.tgz) and put it under `data/lfw/lfw.tgz`
+    * Download `lfw_attributes.txt` from [here](https://www.cs.columbia.edu/CAVE/databases/pubfig/download/lfw_attributes.txt) and place it under `data/lfw/lfw_attributes.txt`
+    * Download the 68 landmarks predictor from [here](http://dlib.net/files/shape_predictor_68_face_landmarks.dat.bz2) and place it under `data/lfw/shape_predictor_68_face_landmarks.dat.bz2` (keep it for **MeGlass**)
+    * Download `standard_landmark_68pts.txt` from [here](https://drive.google.com/file/d/1xd-d1WRnbt3yJnwh5ORGZI3g-YS-fKM9/view) and place under `data/celeba/standard_landmark_68pts.txt` (yes, under `celeba`, not `lfw` - you may already have it)
+2. Unzip the data:
+    ```bash
+    tar zxvf ./data/lfw/lfw.tgz -C data/lfw
+    bunzip2 data/lfw/shape_predictor_68_face_landmarks.dat.bz2
+    ```
+3. Split the dataset:
+    ```bash
+    python scripts/preprocess_lfw.py
+    ```
+4. Clean up the directory
+    ```bash
+    rm -rf ./data/lfw/lfw
+    rm data/lfw/lfw.tgz data/lfw/lfw_attributes.txt data/lfw/shape_predictor_68_face_landmarks.dat
+    ```
+
+#### MeGlass
 
 1. Download the files from Baidu Yun and Github:
     * Download `MeGlass_ori.zip` from [here](https://pan.baidu.com/s/17EBZz3LkQzyn44VL45udTg) and place it under `data/meglass/MeGlass_ori.zip`
     * Download all `.txt` files from [here](https://github.com/cleardusk/MeGlass/tree/master/test) and place them under `data/meglass/*.txt`
-    * Download the 68 landmarks predictor from [here](http://dlib.net/files/shape_predictor_68_face_landmarks.dat.bz2) and place it under `data/meglass/shape_predictor_68_face_landmarks.dat.bz2`
+    * Download the 68 landmarks predictor from [here](http://dlib.net/files/shape_predictor_68_face_landmarks.dat.bz2) and place it under `data/lfw/shape_predictor_68_face_landmarks.dat.bz2` (yes, under `lfw`, not `meglass` - you may already have it)
+    * Download `standard_landmark_68pts.txt` from [here](https://drive.google.com/file/d/1xd-d1WRnbt3yJnwh5ORGZI3g-YS-fKM9/view) and place under `data/celeba/standard_landmark_68pts.txt` (yes, under `celeba`, not `meglass` - you may already have it)
 2. Unzip the data
     ```bash
-    unzip data/meglass/MeGlass_ori.zip -d data/meglass/
-    bunzip2 data/meglass/shape_predictor_68_face_landmarks.dat.bz2
+    unzip data/meglass/MeGlass_ori.zip -d data/meglass
+    bunzip2 data/lfw/shape_predictor_68_face_landmarks.dat.bz2
     ```
 3. Crop, align and split to glasses/no-glasses:
     ```bash
@@ -142,29 +191,8 @@ data                             <- The data directory under project
     ```
 4. Clean up the directory:
     ```bash
-    rm -rf ./data/meglass/MeGlass_ori
-    rm ./data/meglass/MeGlass_ori.zip ./data/meglass/meta.txt
-    ```
-
-</details>
-
-<details><summary><h3>Preparing LFW</h3></summary>
-
-1. Download the files from the official host:
-    * Download `lfw-deepfunneled.tgz` from [here](http://vis-www.cs.umass.edu/lfw/#deepfunnel-anchor) and place it under `./data/lfw/lfw-deepfunneled.tgz`
-    * Download `lfw_attributes.txt` from [here](https://www.cs.columbia.edu/CAVE/databases/pubfig/download/lfw_attributes.txt) and place it under `./data/lfw/lfw_attributes.txt`
-2. Unzip the data:
-    ```bash
-    tar zxvf ./data/lfw/lfw-deepfunneled.tgz -C ./data/lfw/
-    ```
-3. Split the dataset:
-    ```bash
-    python ./scripts/split.py --dataset lfw --resize_h 256 --resize_w 256
-    ```
-4. Clean up the directory
-    ```bash
-    rm -rf ./data/lfw/lfw-deepfunneled
-    rm ./data/lfw/lfw-deepfunneled.tgz ./data/lfw/lfw_attributes.txt
+    rm -rf data/meglass/MeGlass_ori data/meglass/*.txt
+    rm data/meglass/MeGlass_ori.zip data/meglass/shape_predictor_68_face_landmarks.dat
     ```
 
 </details>

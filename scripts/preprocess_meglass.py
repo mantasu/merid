@@ -46,9 +46,9 @@ def parse_args() -> argparse.Namespace:
         help=f"Path to `.txt` file listing standard landmarks. Defaults to "
              f"'data/celeba/standard_landmark_68pts.txt'.")
     parser.add_argument("--landmarks-predictor-path", type=str,
-        default="data/meglass/shape_predictor_68_face_landmarks.dat",
+        default="data/lfw/shape_predictor_68_face_landmarks.dat",
         help=f"Path to landmarks shape predictor `.dat` file used by dlib. "
-             f"Defaults to 'data/meglass/shape_predictor_68_face_landmarks.dat'.")
+             f"Defaults to 'data/lfw/shape_predictor_68_face_landmarks.dat'.")
     parser.add_argument("--split-frac", nargs=2, type=float, default=[.1, .1],
         help=f"Two float numbers determining the validation and the test data "
              f"fractions of the whole dataset. Defaults to [0.1, 0.1].")
