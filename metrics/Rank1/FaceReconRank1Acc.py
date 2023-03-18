@@ -6,8 +6,10 @@ from IPython.display import display
 from tqdm import tqdm
 folder_path = 'data/test/no_glasses/'
 files_no_glass = os.listdir(folder_path)
-# replace this dir with removed glasses folder, keep names the same when remove glasses
-folder_path2 = 'data/test/glasses/'
+#
+# 
+#
+folder_path2 = 'data/test/glasses/' # replace this dir with removed glasses folder, keep names the same when removing glasses!!!!
 files_glass = os.listdir(folder_path2)
 
 print(len(files_glass), len(files_no_glass))
