@@ -20,7 +20,7 @@ from torchvision.models.segmentation import (
 )
 
 sys.path.append("src")
-from data.celeba_mask_hq_dataset import CelebaMaksHQModule
+from data.celeba_mask_hq_data import CelebaMaksHQModule
 from utils.training import compute_gamma, get_checkpoint_callback
 
 class GlassesSegmenter(pl.LightningModule):
@@ -71,7 +71,7 @@ class GlassesSegmenter(pl.LightningModule):
         return out
     
     @torch.no_grad()
-    def predict(self, x: Image.Image | np.ndarray):
+    def predict(self, x: Image.Image | np.ndarray) -> Image.Image:
         # Image to tensor
         x = to_tensor(x)
 
@@ -201,5 +201,14 @@ def main():
     # best_model = SunglassesSegmenter.load_from_checkpoint("checkpoints/deeplab-epoch=00.ckpt", base_model=BASE_MODEL, is_base_pretrained=False)
     torch.save(best_model.state_dict(), PATH)
 
+def check():
+    from collections import OrderedDict
+    input_path = "data/synthetic/val/glasses/img-Glass001-401-1_neutral-3-industrial_pipe_and_valve_02-346-all.jpg"
+    image = Image.open(input_path)
+    model = GlassesSegmenter(base_model="lraspp")
+    model.load_state_dict(torch.load("checkpoints/sunglasses-segmenter-lraspp.pth"))
+    output = model.predict(image)
+    output.save("sunglasses.jpg")
+
 if __name__ == "__main__":
-    main()
+    check()

@@ -2,13 +2,13 @@ import torch
 import argparse
 
 import albumentations as A
-from utils.io import load_image, tensor_to_image
+from utils.image_tools import load_image, tensor_to_image
 from albumentations.pytorch import ToTensorV2
 
 from utils.config import parse_config
-from architectures.remglass import RemGlass
-from architectures.mask_inpainter import MaskInpainter
-from architectures.lafin.lafin_inpainter import LafinInpainter
+from models.trash.remglass import RemGlass
+from models.trash.mask_inpainter import MaskInpainter
+from models.lafin.lafin_inpainter import LafinInpainter
 
 def parse_arguments():
     parser = argparse.ArgumentParser()
@@ -25,11 +25,13 @@ def get_example():
     images = [
         "data/celeba/val/glasses/162786.jpg",
         "data/celeba/val/glasses/163521.jpg",
-        "data/celeba/val/glasses/162938.jpg",
-        "data/celeba/val/glasses/182601.jpg",
-        "data/celeba/val/glasses/163610.jpg",
+        # "data/celeba/val/glasses/162938.jpg",
+        # "data/celeba/val/glasses/182601.jpg",
+        # "data/celeba/val/glasses/163610.jpg",
         "data/celeba/test/glasses/182955.jpg",
         "data/celeba/test/glasses/183090.jpg",
+        "data/celeba/val/glasses/163424.jpg",
+        "data/celeba/val/glasses/182378.jpg",
         # "data/synthetic/val/glasses/img-Glass001-407-8_jaw_right-1-cloud_layers-280-all.jpg",
         # "data/synthetic/val/sunglasses/img-Glass001-407-9_jaw_forward-3-modern_buildings_night-155-sunglasses.jpg",
         # "data/synthetic/val/glasses/img-Glass001-413-1_neutral-2-carpentry_shop_02-198-all.jpg",
@@ -51,13 +53,13 @@ if __name__ == "__main__":
     remglass = RemGlass(config)
     x = get_example()
 
-    from utils.augment import unnormalize
+    from utils.image_tools import unnormalize
     
     with torch.no_grad():
         mask_glasses, mask_shadows, out_glasses, out_shadows = remglass.forward_before_retoucher(x)
         mask, out_glasses, out_shadows, is_sunglasses = remglass.forward_before_inpainter(x)
         inpainter = LafinInpainter(**{"det_weights": "checkpoints/landmark_detector.pth", "gen_weights": "checkpoints/InpaintingModel_gen.pth"})
-        post_processer = MaskInpainter.load_from_checkpoint("checkpoints/effunetplusplus-epoch=03-val_loss_mse=0.0020'.ckpt")
+        post_processer = MaskInpainter()#.load_from_checkpoint("checkpoints/denoiser-recolorer-epoch=07-val_loss_mse=0.00027.ckpt")
         img_inp = inpainter.forward(unnormalize(x), mask)
 
         imgs, tr = [], A.Compose([A.Normalize(), ToTensorV2()])
@@ -65,7 +67,7 @@ if __name__ == "__main__":
             imgs.append(tr(image=tensor_to_image(img))["image"])
         
         img_inp2 = torch.stack(imgs, dim=0)
-        img_new1 = post_processer.post_processer(x, img_inp2, mask)
+        img_new1 = img_inp.mean(1, keepdim=True) + post_processer.denoiser(torch.cat((x, img_inp2, mask), dim=1))
         img_new = post_processer.recolorizer(img_new1, x)
 
 

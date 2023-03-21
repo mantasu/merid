@@ -3,7 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from PIL import Image
-from train import load_json, parse_arguments, prepare_model, prepare_datamodule
+from models.trash.train import load_json, parse_arguments, prepare_model, prepare_datamodule
 from nafnet2.nafnet import NAFNet
 
 import cv2

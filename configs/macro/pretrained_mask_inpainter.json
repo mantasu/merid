@@ -1,0 +1,12 @@
+{
+    "modules": {
+        "inpainter": {"name": "LafinInpainter", "det_weights": "checkpoints/landmark_detector.pth", "gen_weights": "checkpoints/InpaintingModel_gen.pth"},
+        "denoiser": {"name": "NAFNet"},
+        "recolorizer": {"name": "Recolorizer"}
+    },
+    "weights": {
+        "inpainter": {"path": null, "freeze": true},
+        "denoiser": {"path": "checkpoints/nafnet-denoiser-pure.pth", "freeze": true},
+        "recolorizer": {"path": "checkpoints/recolorizer-pure.pth", "freeze": true}
+    }
+}

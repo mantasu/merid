@@ -4,10 +4,13 @@ import random
 import numpy as np
 import albumentations as A
 import pytorch_lightning as pl
+import matplotlib.pyplot as plt
 
 from albumentations.pytorch import ToTensorV2
 from pytorch_lightning import seed_everything
 from pytorch_lightning.callbacks import ModelCheckpoint
+from .image_tools import tensor_to_image, unnormalize as unnormalize_fn
+
 
 def compute_gamma(num_epochs: int, start_lr: float = 1e-3, end_lr: float = 5e-5) -> float:
     if num_epochs < 1:
@@ -98,7 +101,6 @@ def train(
     DEFAULT_TRAINER_KWARGS = {
         "max_epochs": 20,
         "accelerator": "gpu",
-        "gradient_clip_val": 0.2
     }
 
     # Create a custom checkpoint callback
@@ -129,3 +131,44 @@ def train(
     best = model.load_from_checkpoint(checkpoint_callback.best_model_path)
     save_path = os.path.join(checkpoint_dir, model_name + "-best.pth")
     torch.save(best.state_dict(), save_path)
+
+
+def plot_results(
+    model: pl.LightningModule,
+    datamodule: pl.LightningDataModule,
+    num_batch_inputs: int = 2,
+    weights_path: str | None = None,
+    checkpoint_path: str | None = None,
+    max_samples: int = 4,
+    unnormalize: list[bool] = [],
+    is_grayscale: list[bool] = [],
+):
+    batch = next(iter(datamodule.test_dataloader()))
+
+    if weights_path is not None:
+        model.load_state_dict(torch.load(weights_path))
+    else:
+        model.load_from_checkpoint(checkpoint_path)
+
+    outputs = model(*batch[:num_batch_inputs])
+    batch = (*batch, outputs)
+
+    num_rows = min(max_samples, len(outputs))
+    num_cols = len(batch)
+
+    for i in range(num_rows):
+        for j, out in enumerate(batch):
+            sample = out[i]
+
+            if unnormalize != [] and unnormalize[j]:
+                sample = unnormalize_fn(sample)
+
+            image = tensor_to_image(sample)
+
+            if is_grayscale != [] and is_grayscale[j]:
+                image = image[..., None].repeat(3, axis=-1)
+                
+            plt.subplot(num_rows, num_cols, i * num_cols + j + 1)
+            plt.imshow(image)
+    
+    plt.show()

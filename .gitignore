@@ -1,5 +1,6 @@
 # Data
-data
+data/*
+!data/demo/
 !src/data
 checkpoints
 lightning_logs

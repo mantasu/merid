@@ -11,7 +11,7 @@ from colorize_data import ColorizeDataModule
 from utils.augment import unnormalize
 import matplotlib.pyplot as plt
 from utils.image_tools import tensor_to_image
-from infer2 import get_example, parse_arguments
+from models.trash.infer2 import get_example, parse_arguments
 
 from architectures.remglass import RemGlass
 from architectures.lafin.lafin_inpainter import LafinInpainter

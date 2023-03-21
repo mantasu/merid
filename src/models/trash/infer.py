@@ -5,7 +5,7 @@ from PIL import Image
 import matplotlib.pyplot as plt
 from scipy.ndimage import binary_dilation
 from utils.io import load_json
-from train import parse_arguments, prepare_model, prepare_datamodule
+from models.trash.train import parse_arguments, prepare_model, prepare_datamodule
 
 from architectures.mask_inpainter import MaskInpainter
 

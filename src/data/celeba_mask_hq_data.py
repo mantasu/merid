@@ -8,8 +8,8 @@ from .base_data import BaseDataset
 from torch.utils.data import DataLoader
 
 sys.path.append("src")
-from utils.io import load_image
-from utils.augment import create_default_augmentation
+from utils.image_tools import load_image
+from utils.training import create_augmentation
 
 class CelebaMaksHQDataset(BaseDataset):
     def __init__(self,
@@ -62,7 +62,7 @@ class CelebaMaksHQModule(pl.LightningDataModule):
         self.loader_kwargs = loader_kwargs
 
         if augment_train:
-            self.train_transform = create_default_augmentation()
+            self.train_transform = create_augmentation()
 
         # Set some default data loader arguments
         self.loader_kwargs.setdefault("batch_size", 10)

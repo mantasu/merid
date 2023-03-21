@@ -3,14 +3,14 @@ import torch
 import pytorch_lightning as pl
 
 from typing import Any
-from .mask_generator import MaskGenerator
+from ..pesr.mask_generator import MaskGenerator
 from .mask_retoucher import MaskRetoucher
 from .mask_inpainter import MaskInpainter
 
 from torchvision.transforms.functional import normalize
 
 sys.path.append("src")
-from utils.augment import unnormalize
+from utils.image_tools import unnormalize
 
 class RemGlass(pl.LightningModule):
     def __init__(self, config: dict[str, Any]):

@@ -2,7 +2,7 @@ import os
 import pytorch_lightning as pl
 
 from torch.utils.data import DataLoader
-from synthetic_dataset import SyntheticDataModule
+from models.trash.synthetic_dataset import SyntheticDataModule
 from glasses_and_not_dataset import GlassesAndNotDataModule
 
 class SyntheticAndCelebaDataModule(pl.LightningDataModule):

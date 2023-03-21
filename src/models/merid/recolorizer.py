@@ -11,7 +11,7 @@ from torchvision.ops import SqueezeExcitation, Conv2dNormActivation
 sys.path.append("src")
 
 from data.colorize_data import RecolorizeDataModule
-from utils.training import train, compute_gamma
+from utils.training import train, compute_gamma, plot_results
 
 
 class Recolorizer(nn.Module):
@@ -153,5 +153,19 @@ def run_train(model_name: str = "recolorizer", **kwargs):
         limit_test_batches=kwargs.get("limit_test_batches", 50),
     )
 
+def plot(weights_path: str = "checkpoints/recolorizer-best.pth"):
+    model = RecolorizerModule()
+    datamodule = RecolorizeDataModule()
+
+    plot_results(
+        model,
+        datamodule,
+        2,
+        weights_path,
+        unnormalize=[False, True, False, False],
+        is_grayscale=[True, False, False, False]
+    )
+
+
 if __name__ == "__main__":
-    run_train()
+    plot()

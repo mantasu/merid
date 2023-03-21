@@ -1,4 +1,5 @@
 import os
+import torch
 import albumentations as A
 from .base_data import BaseDataset, BaseDataModule
 
@@ -21,12 +22,8 @@ class RecolorizeDataset(BaseDataset):
 
         for file in os.listdir(root_glasses):
             # Replace name with glasses identifiers no-glasses path
-            # file_no_glasses = file.replace("-eyeglasses", "-face")
-            # file_no_glasses = file.replace("-sunglasses", "-face")
-
-            # TODO: fix naming
-            file_no_glasses = file.replace("-all", "-face")
-            samples.append((os.path.join(data_path, "sunglasses", file.replace("-all", "-sunglasses")), os.path.join(root_no_glasses, file_no_glasses)))
+            file_no_glasses = file.replace("-sunglasses", "-face")
+            file_no_glasses = file_no_glasses.replace("-all", "-face")
 
             # Join the roots and filenames to form paths
             path_glasses = os.path.join(root_glasses, file)
@@ -37,7 +34,8 @@ class RecolorizeDataset(BaseDataset):
         
         return samples
     
-    def load_sample(self, glasses_path: str, no_glasses_path: str):
+    def load_sample(self, glasses_path: str, no_glasses_path: str
+                    ) -> tuple[torch.Tensor]:
         # Load samples to a transformable (albumentations) dictionary
         sample = self.load_transformable((glasses_path, no_glasses_path))
 
@@ -53,5 +51,5 @@ class RecolorizeDataset(BaseDataset):
 
 
 class RecolorizeDataModule(BaseDataModule):
-    def __init__(self):
-        super().__init__(RecolorizeDataset, "data/synthetic", shuffle_val=True)
+    def __init__(self, **kwargs):
+        super().__init__(RecolorizeDataset, shuffle_val=True, **kwargs)

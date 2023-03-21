@@ -14,15 +14,16 @@ import albumentations as A
 from typing import Type, Any
 
 from . import guest
-from .io import load_json
 from copy import deepcopy
-from pesr.segmentation import ResnetGeneratorMask
-from pesr.domain_adaption import DomainAdapter, PatchGAN
-from sunny.sunglasses_classifier import SunglassesClssifier
-from sunny.sunglasses_segmenter import GlassesSegmenter
-from nafnet.artefact_remover import NAFNetArtefactRemover
-from lafin.lafin_inpainter import LafinInpainter
-from ddnm.ddnm_inpainter import DDNMInpainter
+from models.pesr.segmentation import ResnetGeneratorMask
+from models.pesr.domain_adaption import DomainAdapter, PatchGAN
+from models.merid.sunglasses_classifier import SunglassesClssifier
+from models.merid.sunglasses_segmenter import GlassesSegmenter
+from models.trash.nafnet_denoiser_old import NAFNetArtefactRemover
+from models.lafin.lafin_inpainter import LafinInpainter
+from models.ddnm.ddnm_inpainter import DDNMInpainter
+from models.nafnet.nafnet import NAFNet
+from models.merid.recolorizer import Recolorizer
 
 
 AVAILABLE_CLASSES = dict((
@@ -36,7 +37,9 @@ AVAILABLE_CLASSES = dict((
     ("GlassesSegmenter", GlassesSegmenter),
     ("NAFNetArtefactRemover", NAFNetArtefactRemover),
     ("LafinInpainter", LafinInpainter),
-    ("DDNMInpainter", DDNMInpainter)
+    ("DDNMInpainter", DDNMInpainter),
+    ("NAFNet", NAFNet),
+    ("Recolorizer", Recolorizer)
 ))
 
 def load_json(path: str | os.PathLike) -> dict[str, Any]:

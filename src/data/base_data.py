@@ -72,11 +72,11 @@ class BaseDataset(ABC, Dataset):
         image_path: str | os.PathLike | Iterable[str | os.PathLike] = [],
         mask_path: str | os.PathLike | Iterable[str | os.PathLike] = [],
     ) -> dict[str, np.ndarray]:
-        if not isinstance(image_path, Iterable):
+        if isinstance(image_path, (str, os.PathLike)):
             # Generalize as a list
             image_path = [image_path]
         
-        if not isinstance(mask_path, Iterable):
+        if isinstance(mask_path, (str, os.PathLike)):
             # Generalize as a list
             mask_path = [mask_path]
         
@@ -110,7 +110,7 @@ class BaseDataset(ABC, Dataset):
 class BaseDataModule(pl.LightningDataModule):
     def __init__(self,
                  dataset_class: BaseDataset,
-                 data_path: str | os.PathLike,
+                 data_path: str | os.PathLike | None = None,
                  augment_train: bool = True,
                  shuffle_val: bool = False,
                  **loader_kwargs):
@@ -134,7 +134,7 @@ class BaseDataModule(pl.LightningDataModule):
     def train_dataloader(self) -> DataLoader:
         # Create train dataset and return loader
         train_dataset = self.dataset_class(
-            data_path=self.data_path,
+            **({} if self.data_path is None else {"data_path": self.data_path}),
             target="train",
             transform=self.train_transform
         )
@@ -143,7 +143,7 @@ class BaseDataModule(pl.LightningDataModule):
     def val_dataloader(self) -> DataLoader:
         # Create val dataset and return loader
         val_dataset = self.dataset_class(
-            data_path=self.data_path,
+            **({} if self.data_path is None else {"data_path": self.data_path}),
             target="val",
             seed=0
         )
@@ -152,7 +152,7 @@ class BaseDataModule(pl.LightningDataModule):
     def test_dataloader(self) -> DataLoader:
         # Create test dataset and return loader
         test_dataset = self.dataset_class(
-            data_path=self.data_path,
+            **({} if self.data_path is None else {"data_path": self.data_path}),
             target="test",
             seed=0
         )
