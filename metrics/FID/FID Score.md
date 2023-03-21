@@ -9,7 +9,7 @@ To compute the FID score between two datasets, where images of each dataset are 
 ```
 python -m pytorch_fid data/meglass/test_x data/lfw/test_x --device cuda:0
 ```
-
+python -m pytorch_fid data/test/no_glasses data/take_off_glasses --device cuda:0
 ```
 (base) ➜  remglass git:(main) ✗ python -m pytorch_fid data/meglass/test_x data/lfw/test_x --device cuda:0
 100%|██████████████████████████████████████████████████████████████████████████████████████████████████████| 297/297 [00:16<00:00, 18.27it/s]
