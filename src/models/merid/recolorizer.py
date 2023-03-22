@@ -105,7 +105,6 @@ class RecolorizerModule(pl.LightningModule):
         # Concatinate all the computed losses to compute the average
         loss_mean = torch.stack([out["loss"] for out in outputs]).mean()
         
-
         # Concatinate y_hats and ys and apply the metrics
         y_hat = torch.cat([out["y_hat"] for out in outputs])
         y = torch.cat([out["y"] for out in outputs])
@@ -168,4 +167,4 @@ def plot(weights_path: str = "checkpoints/recolorizer-best.pth"):
 
 
 if __name__ == "__main__":
-    plot()
+    run_train()

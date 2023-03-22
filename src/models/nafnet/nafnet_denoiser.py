@@ -4,11 +4,11 @@ import torchmetrics
 import torch.nn as nn
 import pytorch_lightning as pl
 
-from .nafnet import NAFNet
 from torch.optim import AdamW, lr_scheduler
 
 sys.path.append("src")
 
+from models.nafnet.nafnet import NAFNet
 from data.denoise_data import DenoiseSyntheticDataModule
 from utils.training import train, compute_gamma, plot_results
 from utils.image_tools import unnormalize
@@ -16,6 +16,8 @@ from utils.image_tools import unnormalize
 
 class NAFNetDenoiser(pl.LightningModule):
     def __init__(self, num_epochs=-1, **kwargs):
+        super().__init__()
+
         # Initialize NAFNet network
         self.nafnet = NAFNet(**kwargs)
 
@@ -45,33 +47,35 @@ class NAFNetDenoiser(pl.LightningModule):
     
     def training_step(self, batch: tuple[torch.Tensor]) -> torch.Tensor:
         # Retrieve elements from the batch: 3 images and 2 masks
-        img_glasses, img_inpainted, img_no_glasses, mask_gen, mask_true = batch
+        img_glasses, img_inpainted, img_no_glasses, mask_gen= batch
 
         # Compute the value of y_hat and determine pixels
         y_hat = self(img_glasses, img_inpainted, mask_gen)
-        is_glassses = mask_true.round().bool()
+        y = img_no_glasses.mean(dim=1, keepdim=True)
+        # is_glassses = mask_true.round().bool()
 
         # Compute MSE at places where the mask actually exists
-        loss = self.loss_fn(y_hat[is_glassses], img_no_glasses[is_glassses])
+        loss = self.loss_fn(y_hat, y)
         self.log("train_loss", loss)
         
         return loss
 
-    def validation_step(self, batch: tuple[torch.Tensor]
+    def validation_step(self, batch: tuple[torch.Tensor], batch_idx: int,
                         ) -> dict[str, torch.Tensor]:
         # Retrieve elements from the batch: 3 images and 2 masks
-        img_glasses, img_inpainted, img_no_glasses, mask_gen, mask_true = batch
+        img_glasses, img_inpainted, img_no_glasses, mask_gen = batch
 
         # Compute the value of y_hat and determine pixels
         y_hat = self(img_glasses, img_inpainted, mask_gen)
-        is_glassses = mask_true.round().bool()
+        y = img_no_glasses.mean(dim=1, keepdim=True)
+        # is_glassses = mask_true.round().bool()
 
         # Compute MSE at places where the mask actually exists
-        loss = self.loss_fn(y_hat[is_glassses], img_no_glasses[is_glassses])
+        loss = self.loss_fn(y_hat, y)
         
-        return {"loss": loss, "y": img_no_glasses, "y_hat": y_hat}
+        return {"loss": loss, "y": y, "y_hat": y_hat}
     
-    def validation_step_end(self, outputs: dict[str, torch.Tensor],
+    def validation_epoch_end(self, outputs: list[dict[str, torch.Tensor]],
                             is_val: bool = True):
         # Concatinate all the computed losses to compute the average
         loss_mean = torch.stack([out["loss"] for out in outputs]).mean()
@@ -99,8 +103,8 @@ class NAFNetDenoiser(pl.LightningModule):
     
     def configure_optimizers(self):
         # Compute exponential decay rate, set up optimizer and scheduler
-        gamma = compute_gamma(self.num_epochs, start_lr=2e-3, end_lr=2e-5)
-        optimizer_mse = AdamW(self.parameters(), lr=2e-3, weight_decay=1e-4)
+        gamma = compute_gamma(self.num_epochs, start_lr=2e-4, end_lr=2e-5)
+        optimizer_mse = AdamW(self.parameters(), lr=2e-4, weight_decay=1e-4)
         scheduler_mse = lr_scheduler.ExponentialLR(optimizer_mse, gamma)
 
         return [optimizer_mse], [scheduler_mse]
@@ -113,7 +117,7 @@ class NAFNetDenoiser(pl.LightningModule):
 def run_train(model_name: str = "denoiser", **kwargs):
 
     model = NAFNetDenoiser(num_epochs=kwargs.get("max_epochs", 10))
-    datamodule = DenoiseSyntheticDataModule()
+    datamodule = DenoiseSyntheticDataModule(batch_size=10, num_workers=4)
 
     train(
         model=model,
@@ -122,9 +126,10 @@ def run_train(model_name: str = "denoiser", **kwargs):
         max_epochs=kwargs.get("max_epochs", 10),
         limit_val_batches=kwargs.get("limit_val_batches", 40),
         limit_test_batches=kwargs.get("limit_test_batches", 40),
+        val_check_interval=0.1,
     )
 
-def plot(weights_path: str = "checkpoints/recolorizer-best.pth"):
+def plot(weights_path: str = "checkpoints/denoiser-new.pth"):
     model = NAFNetDenoiser()
     datamodule = DenoiseSyntheticDataModule()
 

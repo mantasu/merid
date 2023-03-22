@@ -22,7 +22,7 @@ from models.merid.sunglasses_segmenter import GlassesSegmenter
 from models.trash.nafnet_denoiser_old import NAFNetArtefactRemover
 from models.lafin.lafin_inpainter import LafinInpainter
 from models.ddnm.ddnm_inpainter import DDNMInpainter
-from models.nafnet.nafnet import NAFNet
+from models.nafnet.nafnet_denoiser import NAFNetDenoiser
 from models.merid.recolorizer import Recolorizer
 
 
@@ -38,7 +38,7 @@ AVAILABLE_CLASSES = dict((
     ("NAFNetArtefactRemover", NAFNetArtefactRemover),
     ("LafinInpainter", LafinInpainter),
     ("DDNMInpainter", DDNMInpainter),
-    ("NAFNet", NAFNet),
+    ("NAFNetDenoiser", NAFNetDenoiser),
     ("Recolorizer", Recolorizer)
 ))
 

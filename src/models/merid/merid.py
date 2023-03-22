@@ -11,7 +11,7 @@ from ..pesr.domain_adaption import DomainAdapter
 from ..pesr.segmentation import ResnetGeneratorMask
 from ..ddnm.ddnm_inpainter import DDNMInpainter
 from ..lafin.lafin_inpainter import LafinInpainter
-from ..nafnet.nafnet import NAFNet
+from ..nafnet.nafnet_denoiser import NAFNetDenoiser
 from .recolorizer import Recolorizer
 from .sunglasses_classifier import SunglassesClssifier
 from .sunglasses_segmenter import GlassesSegmenter
@@ -111,14 +111,13 @@ class MaskInpainter(nn.Module):
         
         # Initialize one of the inpainters, NAFNet denoiser, recolorizer
         self.inpainter: LafinInpainter | DDNMInpainter = config["inpainter"]
-        self.denoiser: NAFNet = config["denoiser"]
+        self.denoiser: NAFNetDenoiser = config["denoiser"]
         self.recolorizer: Recolorizer = config["recolorizer"]
 
     def forward(self, image: torch.Tensor, mask: torch.Tensor) -> torch.Tensor:
         # Inpaint, denoise grayscale, colorize
         inpainted = self.inpainter(unnormalize(image), mask)
-        input = torch.cat((image, normalize(inpainted), mask), dim=1)
-        grayscale = inpainted.mean(dim=1, keepdim=True) + self.denoiser(input)
+        grayscale = self.denoiser(image, normalize(inpainted), mask)
         colorized = self.recolorizer(grayscale, image)
         
         return colorized

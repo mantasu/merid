@@ -13,7 +13,7 @@ class DenoiseSyntheticDataset(BaseDataset):
         data_path: bool = "data/synthetic",
         target: str = "train",
         transform: A.Compose | None = None,
-        frames_every_n: int = 5,
+        frames_every_n: int = 2,
         seed: int = 0,
     ):
         self.frames_every_n = frames_every_n

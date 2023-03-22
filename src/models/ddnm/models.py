@@ -303,6 +303,7 @@ class Model(nn.Module):
 
         # timestep embedding
         temb = get_timestep_embedding(t, self.ch)
+        temb = temb.to(x.device)
         temb = self.temb.dense[0](temb)
         temb = nonlinearity(temb)
         temb = self.temb.dense[1](temb)

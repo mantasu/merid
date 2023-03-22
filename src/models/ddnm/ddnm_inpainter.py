@@ -14,14 +14,14 @@ class DDNMInpainter(pl.LightningModule):
                  num_diff_steps: int = 1000,
                  image_size: int = 256,
                  eta: float = 0.85,
-                 device: str = "cpu", 
+                 show_progress: bool = False, 
                  config_model: dict[str, Any] = {},
                  config_diffusion: dict[str, Any] = {},
                  config_time_travel: dict[str, Any] = {}):
         super().__init__()
         # Assign basics
         self.eta = eta
-        # self.device = device
+        self.show_progress = show_progress
 
         # Acquire specific diffusion attributes like model and schedules
         self.model = self._init_model(config_model, image_size, num_diff_steps)
@@ -62,14 +62,9 @@ class DDNMInpainter(pl.LightningModule):
         model = Model(model_config)# .to(self.device)
         
         return model
-    
-    def __call__(self, imgs: torch.Tensor, masks: torch.Tensor,
-                rand: torch.Tensor | None = None, show_progress: bool = False):
-        return self.forward(imgs, masks, rand, show_progress)
 
     def _init_betas(self, diffusion_config: dict[str, Any],
                     num_diff_steps: int) -> torch.Tensor:
-        print("hi", num_diff_steps)
         # Get beta schedule parameter
         betas = self.get_beta_schedule(
             beta_schedule=diffusion_config.get("beta_schedule", "linear"),
@@ -183,8 +178,11 @@ class DDNMInpainter(pl.LightningModule):
 
         return [*ts, -1]
     
-    def compute_alpha(self, beta: torch.Tensor, t: int) -> torch.Tensor:
-        # Concatinate zeros to beta and 
+    def compute_alpha(self, beta: torch.Tensor, t: torch.Tensor
+                      ) -> torch.Tensor:
+        # Concatinate zeros to beta and
+        # print(type(t))
+        # t = torch.tensor(t, device=beta.device)
         beta = torch.cat([torch.zeros(1, device=beta.device), beta], dim=0)
         a = (1 - beta).cumprod(dim=0).index_select(0, t + 1).view(-1, 1, 1, 1)
         
@@ -217,32 +215,22 @@ class DDNMInpainter(pl.LightningModule):
 
     @torch.no_grad()
     def forward(self, imgs: torch.Tensor, masks: torch.Tensor,
-                rand: torch.Tensor | None = None, show_progress: bool = False) \
+                rand: torch.Tensor | None = None, show_progress: bool = True) \
                 -> torch.Tensor:
+        imgs, masks = imgs * 2 - 1, 1 - masks
         x = torch.randn_like(imgs) if rand is None else rand
-        # x = torch.randn_like(imgs)
         n, x0_preds, xs, y = x.size(0), [], [x], imgs * masks
         
         time_pairs = self.time_pairs# [int(len(self.time_pairs) * .75):] if rand is not None else self.time_pairs
         pbar = tqdm.tqdm(time_pairs) if show_progress else time_pairs
-
-        # print(xs[-1][(1-masks).bool().repeat(1, 3, 1, 1)].shape)
-        # is_less_than_zero = (means := xs[-1][(1-masks).bool().repeat(1, 3, 1, 1)].mean(dim=(1, 2, 3))) < 0
-        # print(xs[-1].shape, means.shape, is_less_than_zero.shape)
-        # xs[-1][is_less_than_zero] += means[is_less_than_zero]
-
-        # r = torch.randn_like(imgs)
-        # print(r.min(), r.max(), r.mean(), x.min(), x.max(), x.mean())
-        # print(x[(1-masks).bool().repeat(1, 3, 1, 1)].mean())
-
         
         # reverse diffusion sampling
         for i, j in pbar:
             i, j = i * self.skip, -1 if j * self.skip < 0 else j * self.skip
 
             if j < i: # normal sampling 
-                t = torch.ones(n, device=self.device) * i
-                next_t  = torch.ones(n, device=self.device) * j
+                t = torch.ones(n, device=self.betas.device) * i
+                next_t  = torch.ones(n, device=self.betas.device) * j
                 at = self.compute_alpha(self.betas, t.long())
                 at_next = self.compute_alpha(self.betas, next_t.long())
                 sigma_t, xt = (1 - at_next ** 2).sqrt(), xs[-1]
@@ -280,4 +268,4 @@ class DDNMInpainter(pl.LightningModule):
         
         # print(xs[-1][(1-masks).bool().repeat(1, 3, 1, 1)].mean())
 
-        return xs[-1]
+        return ((xs[-1] + 1) / 2).clamp(0, 1)
