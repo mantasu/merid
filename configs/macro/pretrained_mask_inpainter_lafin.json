@@ -6,7 +6,7 @@
     },
     "weights": {
         "inpainter": {"path": null, "freeze": true},
-        "denoiser": {"path": "checkpoints/denoiser-best.pth", "freeze": true},
+        "denoiser": {"path": "checkpoints/denoiser-new-best.pth", "freeze": true},
         "recolorizer": {"path": "checkpoints/recolorizer-pure.pth", "freeze": true}
     }
 }

@@ -43,7 +43,7 @@ class NAFNetDenoiser(pl.LightningModule):
         input = torch.cat((img_glasses, img_inpainted, mask), dim=1)
         grayscale += self.nafnet(input)
 
-        return grayscale
+        return grayscale.clamp(0, 1)
     
     def training_step(self, batch: tuple[torch.Tensor]) -> torch.Tensor:
         # Retrieve elements from the batch: 3 images and 2 masks
@@ -52,7 +52,6 @@ class NAFNetDenoiser(pl.LightningModule):
         # Compute the value of y_hat and determine pixels
         y_hat = self(img_glasses, img_inpainted, mask_gen)
         y = img_no_glasses.mean(dim=1, keepdim=True)
-        # is_glassses = mask_true.round().bool()
 
         # Compute MSE at places where the mask actually exists
         loss = self.loss_fn(y_hat, y)
@@ -68,7 +67,6 @@ class NAFNetDenoiser(pl.LightningModule):
         # Compute the value of y_hat and determine pixels
         y_hat = self(img_glasses, img_inpainted, mask_gen)
         y = img_no_glasses.mean(dim=1, keepdim=True)
-        # is_glassses = mask_true.round().bool()
 
         # Compute MSE at places where the mask actually exists
         loss = self.loss_fn(y_hat, y)
@@ -103,8 +101,8 @@ class NAFNetDenoiser(pl.LightningModule):
     
     def configure_optimizers(self):
         # Compute exponential decay rate, set up optimizer and scheduler
-        gamma = compute_gamma(self.num_epochs, start_lr=2e-4, end_lr=2e-5)
-        optimizer_mse = AdamW(self.parameters(), lr=2e-4, weight_decay=1e-4)
+        gamma = compute_gamma(self.num_epochs, start_lr=5e-4, end_lr=5e-5)
+        optimizer_mse = AdamW(self.parameters(), lr=5e-4, weight_decay=1e-6)
         scheduler_mse = lr_scheduler.ExponentialLR(optimizer_mse, gamma)
 
         return [optimizer_mse], [scheduler_mse]
@@ -114,9 +112,10 @@ class NAFNetDenoiser(pl.LightningModule):
         optimizer.zero_grad(set_to_none=True)
 
 
-def run_train(model_name: str = "denoiser", **kwargs):
+def run_train(model_name: str = "denoiser-new", **kwargs):
 
     model = NAFNetDenoiser(num_epochs=kwargs.get("max_epochs", 10))
+    model.load_state_dict(torch.load("checkpoints/denoiser-best.pth"))
     datamodule = DenoiseSyntheticDataModule(batch_size=10, num_workers=4)
 
     train(
@@ -129,7 +128,7 @@ def run_train(model_name: str = "denoiser", **kwargs):
         val_check_interval=0.1,
     )
 
-def plot(weights_path: str = "checkpoints/denoiser-new.pth"):
+def plot(weights_path: str = "checkpoints/denoiser-best.pth"):
     model = NAFNetDenoiser()
     datamodule = DenoiseSyntheticDataModule()
 

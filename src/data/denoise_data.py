@@ -13,10 +13,10 @@ class DenoiseSyntheticDataset(BaseDataset):
         data_path: bool = "data/synthetic",
         target: str = "train",
         transform: A.Compose | None = None,
-        frames_every_n: int = 2,
+        frames_every_n: int = 3,
         seed: int = 0,
     ):
-        self.frames_every_n = frames_every_n
+        self.frames_every_n = frames_every_n if target == "train" else 9999999
         super().__init__(data_path, target, transform, seed)
     
     def init_samples(self, data_path: str) -> list[str]:
@@ -27,13 +27,14 @@ class DenoiseSyntheticDataset(BaseDataset):
         samples, i = [], 0
         
         for file in os.listdir(root_glasses):
-            if file.endswith("-all.jpg") and i < self.frames_every_n:
-                # Skip
-                i += 1
-                continue
-            else:
-                # Reset
-                i = 0
+            if file.endswith("-all.jpg"):
+                if i < self.frames_every_n:
+                    # Skip
+                    i += 1
+                    continue
+                else:
+                    # Reset
+                    i = 0
 
             if file.endswith("-all.jpg"):
                 # If normal eyeglasses, use mask frame
@@ -145,12 +146,12 @@ class DenoiseCelebADataset(BaseDataset):
 
 class DenoiseSyntheticDataModule(BaseDataModule):
     def __init__(self, **kwargs):
-        super().__init__(DenoiseSyntheticDataset, shuffle_val=True, **kwargs)
+        super().__init__(DenoiseSyntheticDataset, shuffle_val=False, **kwargs)
 
 
 class DenoiseCelebADataModule(BaseDataModule):
     def __init__(self, **kwargs):
-        super().__init__(DenoiseCelebADataset, shuffle_val=True, **kwargs)
+        super().__init__(DenoiseCelebADataset, shuffle_val=False, **kwargs)
 
 
 class DenoiseDataModule(pl.LightningDataModule):

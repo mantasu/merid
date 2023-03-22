@@ -6,7 +6,8 @@ import torch.nn as nn
 import pytorch_lightning as pl
 
 from PIL import Image
-from pytorch_lightning import seed_everything
+from torch.optim import AdamW
+from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts
 from torchvision.ops import SqueezeExcitation
 from torchvision.models.mobilenetv2 import InvertedResidual
 from torchvision.transforms.functional import to_tensor, normalize, to_pil_image
@@ -20,16 +21,18 @@ from torchvision.models.segmentation import (
 )
 
 sys.path.append("src")
-from data.celeba_mask_hq_data import CelebaMaksHQModule
-from utils.training import compute_gamma, get_checkpoint_callback
+
+from utils.training import train
+from data.sunglasses_segmentation_data import SunglassesSegmentationDataModule
+
 
 class GlassesSegmenter(pl.LightningModule):
-    def __init__(self, num_epochs: int = -1,
-                 base_model: str = "deeplab",
-                 is_base_pretrained: bool = False):
+    def __init__(
+        self,
+        base_model: str = "lraspp",        
+        is_base_pretrained: bool = False,
+    ):
         super().__init__()
-        self.num_epochs = num_epochs
-        
         # Load and replace the last layer with a binary segmentation head
         self.base_model = self.load_base_model(base_model, is_base_pretrained)
 
@@ -89,7 +92,7 @@ class GlassesSegmenter(pl.LightningModule):
         x, y = batch
 
         # Forward pass + loss computation
-        loss = self.loss_fn(self(x).squeeze(1), y)
+        loss = self.loss_fn(self(x), y)
 
         # Log mini-batch train loss
         self.log("train_loss", loss)
@@ -100,58 +103,43 @@ class GlassesSegmenter(pl.LightningModule):
                         batch_idx: int) -> dict[str, torch.Tensor]:
         # Get samples and predict
         x, y = batch
-        y_hat = self(x).squeeze(1)
+        y_hat = self(x)
 
         # Compute the mini-batch loss
         loss = self.loss_fn(y_hat, y)
 
         return {"loss": loss, "y_hat": y_hat, "y": y}
     
-    def validation_epoch_end(self, outputs: dict[str, torch.Tensor]):
+    def validation_epoch_end(self, outputs: dict[str, torch.Tensor], is_val: bool = True):
         # Concatinate all the computed losses to compute the average
         loss_mean = torch.stack([out["loss"] for out in outputs]).mean()
-        lr = self.trainer.optimizers[0].param_groups[0]['lr']
 
         # Concatinate y_hats and ys and apply the metrics
         y_hat = torch.cat([out["y_hat"] for out in outputs])
         y = torch.cat([out["y"] for out in outputs])
-        metrics = self.metrics(y_hat, y.long())
+        metrics = list(self.metrics(y_hat, y.long()).values())
 
-        # Log the computed performance (loss and acc)
-        self.log("val_loss", loss_mean, prog_bar=True)
-        self.log("lr", lr, prog_bar=True)
-        self.log_dict(metrics, prog_bar=True)
+        if is_val:
+            # If it's validation step, also show the learning rate
+            lr = self.trainer.optimizers[0].param_groups[0]['lr']
+            self.log("lr", lr, prog_bar=True)
+        
+        # Log validation or test MSE, SSIM, and PSNR to the progress bar
+        self.log(f"{'val' if is_val else 'test'}_loss", loss_mean, True)
+        self.log(f"{'val' if is_val else 'test'}_f1", metrics[0], True)
+        self.log(f"{'val' if is_val else 'test'}_dice", metrics[1], True)
 
     
     def test_step(self, batch: tuple[torch.Tensor, torch.Tensor],
                   batch_idx: int) -> dict[str, torch.Tensor]:
-        # Get samples and predict
-        x, y = batch
-        y_hat = self(x).squeeze(1)
-
-        # Compute the mini-batch loss
-        loss = self.loss_fn(y_hat, y)
-
-        return {"loss": loss, "y_hat": y_hat, "y": y}
+        return self.validation_step(batch, batch_idx)
     
     def test_epoch_end(self, outputs: dict[str, torch.Tensor]):
-        # Concatinate all the computed losses to compute the average
-        loss_mean = torch.stack([out["loss"] for out in outputs]).mean()
-
-        # Concatinate y_hats and ys and apply the metrics
-        y_hat = torch.cat([out["y_hat"] for out in outputs])
-        y = torch.cat([out["y"] for out in outputs])
-        metrics = self.metrics(y_hat, y.long())
-
-        # Log the computed performance (loss and acc)
-        self.log("test_loss", loss_mean, prog_bar=True)
-        self.log_dict(metrics, prog_bar=True)
+        self.validation_epoch_end(outputs, is_val=False)
 
     def configure_optimizers(self):
-        gamma = compute_gamma(self.num_epochs, start_lr=1e-3, end_lr=1e-6)
-        optimizer = torch.optim.AdamW(self.parameters(), lr=1e-3, weight_decay=1e-8)
-        # scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, gamma)
-        scheduler = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(optimizer, 10, 2, 1e-6)
+        optimizer = AdamW(self.parameters(), lr=1e-3, weight_decay=1e-4)
+        scheduler = CosineAnnealingWarmRestarts(optimizer, 10, 2, 1e-6)
 
         return [optimizer], [scheduler]
 
@@ -175,31 +163,22 @@ class MiniSunglassesSegmenter(nn.Module):
         x = self.conv2(x)
         return x
 
+def run_train(base_model: str = "deeplab", **kwargs):
 
-def main():
-    NUM_EPOCHS = 310
-    BASE_MODEL = "lraspp"
-    LOAD_BASE_WEIGHTS = True
-    PATH = "checkpoints/sunglasses-segmenter-" + BASE_MODEL + ".pth"
+    max_epochs = kwargs.pop("max_epochs", 310)
+    pretrained = kwargs.pop("is_base_pretrained", True)
+    model_name = kwargs.pop("model_name", "sunglasses-segmenter-" + base_model)
 
-    seed_everything(0, workers=True)
-    torch.set_float32_matmul_precision("medium")
+    model = GlassesSegmenter(base_model, pretrained)
+    datamodule = SunglassesSegmentationDataModule()
 
-    # Setup model, datamodule and trainer params
-    model = GlassesSegmenter(NUM_EPOCHS, BASE_MODEL, LOAD_BASE_WEIGHTS)
-    datamodule = CelebaMaksHQModule()
-    checkpoint_callback = get_checkpoint_callback(BASE_MODEL)
-    
-    # Initialize the trainer, train it using datamodule and finally test
-    trainer = pl.Trainer(max_epochs=NUM_EPOCHS, accelerator="gpu",
-                         callbacks=[checkpoint_callback])
-    trainer.fit(model, datamodule=datamodule, ckpt_path="checkpoints/lraspp-epoch=126.ckpt")
-    trainer.test(ckpt_path="best", datamodule=datamodule)
-
-    # Load the best model from saved checkpoints and save its weights
-    best_model = GlassesSegmenter.load_from_checkpoint(checkpoint_callback.best_model_path, base_model=BASE_MODEL, is_base_pretrained=False)
-    # best_model = SunglassesSegmenter.load_from_checkpoint("checkpoints/deeplab-epoch=00.ckpt", base_model=BASE_MODEL, is_base_pretrained=False)
-    torch.save(best_model.state_dict(), PATH)
+    train(
+        model=model,
+        datamodule=datamodule,
+        model_name=model_name,
+        max_epochs=max_epochs,
+        **kwargs
+    )
 
 def check():
     from collections import OrderedDict
@@ -211,4 +190,4 @@ def check():
     output.save("sunglasses.jpg")
 
 if __name__ == "__main__":
-    check()
+    run_train()

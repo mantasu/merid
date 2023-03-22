@@ -14,7 +14,7 @@ class RecolorizeDataset(BaseDataset):
     ):
         super().__init__(data_path, target, transform, seed)
     
-    def init_samples(self, data_path: str) -> list[str]:
+    def init_samples(self, data_path: str) -> list[tuple[str]]:
         # Initialize root paths and a list of samples
         root_glasses = os.path.join(data_path, "glasses")
         root_no_glasses = os.path.join(data_path, "no_glasses")

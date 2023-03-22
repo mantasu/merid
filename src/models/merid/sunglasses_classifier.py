@@ -95,5 +95,3 @@ class MiniSunglassesFeatures(nn.Module):
     
     def forward(self, x):
         return self.fc(self.features(x))
-
-    
