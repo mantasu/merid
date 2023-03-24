@@ -94,10 +94,26 @@ class NAFNetDenoiser(pl.LightningModule):
         self.log(f"{'val' if is_val else 'test'}_psnr", metrics[1], True)
 
     def test_step(self, batch, batch_idx):
-        return self.validation_step(batch, batch_idx)
+        # Retrieve elements from the batch: 3 images and 2 masks
+        img_glasses, img_inpainted, img_no_glasses, mask_gen = batch
+
+        # Compute the value of y_hat and determine pixels
+        y_hat = self(img_glasses, img_inpainted, mask_gen)
+        y = img_no_glasses.mean(dim=1, keepdim=True)
+
+        # Compute MSE at places where the mask actually exists
+        loss = self.loss_fn(y_hat, y)
+
+        metrics = list(self.metrics(y_hat, y).values())
+        self.log("test_loss", loss.item())
+        self.log(f"test_ssim", metrics[0])
+        self.log(f"test_psnr", metrics[1])
+
+        return {"test_loss": loss.item(), "test_ssim": metrics[0], "test_psnr": metrics[1]}
+        # return self.validation_step(batch, batch_idx)
     
-    def test_epoch_end(self, outputs):
-        return self.validation_epoch_end(outputs, is_val=False)
+    # def test_epoch_end(self, outputs):
+    #     return self.validation_epoch_end(outputs, is_val=False)
     
     def configure_optimizers(self):
         # Compute exponential decay rate, set up optimizer and scheduler
@@ -128,6 +144,13 @@ def run_train(model_name: str = "denoiser-new", **kwargs):
         val_check_interval=0.1,
     )
 
+def run_test():
+    model = NAFNetDenoiser.load_from_checkpoint("checkpoints/denoiser-new-epoch=08-val_loss=0.00024.ckpt")
+    datamodule = DenoiseSyntheticDataModule()
+
+    trainer = pl.Trainer(accelerator="gpu")
+    trainer.test(model, datamodule=datamodule)
+
 def plot(weights_path: str = "checkpoints/denoiser-best.pth"):
     model = NAFNetDenoiser()
     datamodule = DenoiseSyntheticDataModule()
@@ -143,4 +166,4 @@ def plot(weights_path: str = "checkpoints/denoiser-best.pth"):
 
 
 if __name__ == "__main__":
-    run_train()
+    run_test()

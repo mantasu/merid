@@ -123,8 +123,8 @@ class RecolorizerModule(pl.LightningModule):
     def test_step(self, batch, batch_idx):
         return self.validation_step(batch, batch_idx)
     
-    def test_epoch_end(self, outputs):
-        return self.validation_epoch_end(outputs, is_val=False)
+    # def test_epoch_end(self, outputs):
+    #    return self.validation_epoch_end(outputs, is_val=False)
     
     def configure_optimizers(self):
         # Compute exponential decay rate, set up optimizer and scheduler
@@ -150,7 +150,15 @@ def run_train(model_name: str = "recolorizer", **kwargs):
         max_epochs=kwargs.get("max_epochs", 20),
         limit_val_batches=kwargs.get("limit_val_batches", 50),
         limit_test_batches=kwargs.get("limit_test_batches", 50),
+        val_check_interval=0.1,
     )
+
+def run_test():
+    model = RecolorizerModule().load_from_checkpoint("checkpoints/recolorizer-epoch=19-val_loss=0.00005.ckpt")
+    datamodule = RecolorizeDataModule()
+
+    trainer = pl.Trainer(accelerator="gpu")
+    trainer.test(model, datamodule=datamodule)
 
 def plot(weights_path: str = "checkpoints/recolorizer-best.pth"):
     model = RecolorizerModule()

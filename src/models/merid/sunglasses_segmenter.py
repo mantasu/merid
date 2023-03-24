@@ -8,11 +8,12 @@ import pytorch_lightning as pl
 from PIL import Image
 from torch.optim import AdamW
 from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts
-from torchvision.ops import SqueezeExcitation
-from torchvision.models.mobilenetv2 import InvertedResidual
+from torchvision.ops import Conv2dNormActivation
 from torchvision.transforms.functional import to_tensor, normalize, to_pil_image
 from torchvision.models.segmentation.deeplabv3 import DeepLabHead
 from torchvision.models.segmentation.lraspp import LRASPPHead
+
+from torchvision.models.resnet import BasicBlock
 
 from torchvision.models.segmentation import (
     deeplabv3_resnet50, DeepLabV3_ResNet50_Weights,
@@ -29,7 +30,7 @@ from data.sunglasses_segmentation_data import SunglassesSegmentationDataModule
 class GlassesSegmenter(pl.LightningModule):
     def __init__(
         self,
-        base_model: str = "lraspp",        
+        base_model: str = "deeplab",        
         is_base_pretrained: bool = False,
     ):
         super().__init__()
@@ -55,7 +56,8 @@ class GlassesSegmenter(pl.LightningModule):
             case "fcn":
                 w = FCN_ResNet50_Weights.COCO_WITH_VOC_LABELS_V1
                 m = fcn_resnet50(weights=w if is_pretrained else None)
-                m.classifier[-1] = nn.Conv2d(256, 1, 1)
+                m.classifier[-1] = nn.Conv2d(512, 1, 1)
+                m.aux_classifier = None
             case "lraspp":
                 w = LRASPP_MobileNet_V3_Large_Weights.COCO_WITH_VOC_LABELS_V1
                 m = lraspp_mobilenet_v3_large(weights=w if is_pretrained else None)
@@ -145,31 +147,85 @@ class GlassesSegmenter(pl.LightningModule):
 
 
 class MiniSunglassesSegmenter(nn.Module):
+    class Down(nn.Module):
+        def __init__(self, in_channels: int, out_channels: int):
+            super().__init__()
+
+            self.pool0 = nn.MaxPool2d(2)
+            self.conv1 = Conv2dNormActivation(in_channels, out_channels)
+            self.conv2 = Conv2dNormActivation(out_channels, out_channels)
+        
+        def forward(self, x):
+            return self.conv2(self.conv1(self.pool0(x)))
+        
+    class Up(nn.Module):
+        def __init__(self, in_channels: int, out_channels: int):
+            super().__init__()
+
+            half_channels = in_channels // 2
+            self.conv0 = nn.ConvTranspose2d(half_channels, half_channels, 2, 2)
+            self.conv1 = Conv2dNormActivation(in_channels, out_channels)
+            self.conv2 = Conv2dNormActivation(out_channels, out_channels)
+
+        def forward(self, x1: torch.Tensor, x2: torch.Tensor):
+            x1 = self.conv0(x1)
+
+            # input is CHW
+            diffY = x2.size()[2] - x1.size()[2]
+            diffX = x2.size()[3] - x1.size()[3]
+
+            x1 = nn.functional.pad(x1, (diffX // 2, diffX - diffX // 2,
+                                        diffY // 2, diffY - diffY // 2))
+            
+            x = torch.cat([x2, x1], dim=1)
+
+            return self.conv2(self.conv1(x))
+    
     def __init__(self):
         super().__init__()
-        self.conv1 = nn.Conv2d(3, 256, kernel_size=3, padding="same")
-        self.irb1 = InvertedResidual(256, 256, 2, expand_ratio=6)
-        self.irb2 = InvertedResidual(256, 512, 2, expand_ratio=6)
-        self.irb3 = InvertedResidual(512, 1024, 2, expand_ratio=6)
-        self.se1 = SqueezeExcitation(1024, 4)
-        self.conv2 = nn.Conv2d(1024, 1, kernel_size=1)
+
+        self.first = nn.Sequential(
+            Conv2dNormActivation(3, 16),
+            Conv2dNormActivation(16, 16),
+        )
+
+        self.down1 = self.Down(16, 32)
+        self.down2 = self.Down(32, 64)
+        self.down3 = self.Down(64, 128)
+        self.down4 = self.Down(128, 128)
+
+        self.up1 = self.Up(256, 64)
+        self.up2 = self.Up(128, 32)
+        self.up3 = self.Up(64, 16)
+        self.up4 = self.Up(32, 16)
+
+        self.last = nn.Conv2d(16, 1, 1)
 
     def forward(self, x):
-        x = self.conv1(x)
-        x = self.irb1(x)
-        x = self.irb2(x)
-        x = self.irb3(x)
-        x = self.se1(x)
-        x = self.conv2(x)
-        return x
+        x1 = self.first(x)
 
-def run_train(base_model: str = "deeplab", **kwargs):
+        x2 = self.down1(x1)
+        x3 = self.down2(x2)
+        x4 = self.down3(x3)
+        x5 = self.down4(x4)
+
+        x = self.up1(x5, x4)
+        x = self.up2(x, x3)
+        x = self.up3(x, x2)
+        x = self.up4(x, x1)
+
+        out = self.last(x)
+
+        return {"out": out}
+
+
+def run_train(base_model: str = "test", **kwargs):
 
     max_epochs = kwargs.pop("max_epochs", 310)
     pretrained = kwargs.pop("is_base_pretrained", True)
     model_name = kwargs.pop("model_name", "sunglasses-segmenter-" + base_model)
 
-    model = GlassesSegmenter(base_model, pretrained)
+    model = GlassesSegmenter("mini", pretrained)
     datamodule = SunglassesSegmentationDataModule()
 
     train(
@@ -180,14 +236,14 @@ def run_train(base_model: str = "deeplab", **kwargs):
         **kwargs
     )
 
-def check():
-    from collections import OrderedDict
-    input_path = "data/synthetic/val/glasses/img-Glass001-401-1_neutral-3-industrial_pipe_and_valve_02-346-all.jpg"
-    image = Image.open(input_path)
-    model = GlassesSegmenter(base_model="lraspp")
-    model.load_state_dict(torch.load("checkpoints/sunglasses-segmenter-lraspp.pth"))
-    output = model.predict(image)
-    output.save("sunglasses.jpg")
+def run_test(base_model: str = "mini", ckpt_path: str = "/home/mantasu/projects/remglass/checkpoints/sunglasses-segmenter-mini-epoch=284-val_loss=0.05969.ckpt"):
+    
+    model = GlassesSegmenter.load_from_checkpoint(ckpt_path, base_model=base_model)
+    datamodule = SunglassesSegmentationDataModule()
+
+    trainer = pl.Trainer(accelerator="gpu")
+    trainer.test(model, datamodule=datamodule)
+
 
 if __name__ == "__main__":
-    run_train()
+    run_test()

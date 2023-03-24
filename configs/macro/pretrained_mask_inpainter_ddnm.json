@@ -1,12 +1,12 @@
 {
     "modules": {
-        "inpainter": {"name": "DDNMInpainter", "num_diff_steps": 1000, "image_size": 256, "show_progress": true, "config_time_travel": {"T_sampling": 30}, "config_diffusion": {"beta_schedule": "sigmoid"}},
+        "inpainter": {"name": "DDNMInpainter", "num_diff_steps": 500, "image_size": 256, "show_progress": true, "config_time_travel": {"T_sampling": 50}, "config_diffusion": {"beta_schedule": "sigmoid"}},
         "denoiser": {"name": "NAFNetDenoiser"},
         "recolorizer": {"name": "Recolorizer"}
     },
     "weights": {
         "inpainter": {"path": "checkpoints/celeba_hq.ckpt", "freeze": true},
-        "denoiser": {"path": "checkpoints/denoiser-best.pth", "freeze": true},
+        "denoiser": {"path": "checkpoints/denoiser-new-best.pth", "freeze": true},
         "recolorizer": {"path": "checkpoints/recolorizer-pure.pth", "freeze": true}
     }
 }

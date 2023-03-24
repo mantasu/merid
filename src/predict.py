@@ -46,16 +46,4 @@ def main():
 
 if __name__ == "__main__":
     main()
-    # from models.nafnet.nafnet import NAFNet
-    # from models.merid.recolorizer import Recolorizer
-    # from collections import OrderedDict
     
-    # new_weights = OrderedDict()
-    # weights = torch.load("checkpoints/recolorizer-best.pth")
-
-    # for key in weights.keys():
-    #     new_weights[key[12:]] = weights[key]
-
-    # nafnet = Recolorizer()
-    # nafnet.load_state_dict(new_weights)
-    # torch.save(nafnet.state_dict(), "recolorizer-pure.pth")

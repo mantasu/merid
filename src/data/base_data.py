@@ -7,13 +7,14 @@ import albumentations as A
 import pytorch_lightning as pl
 
 from typing import Any, Iterable
-from torch.utils.data import Dataset, DataLoader
 from abc import ABC, abstractmethod
-from albumentations.pytorch import ToTensorV2
+from torch.utils.data import Dataset, DataLoader
 
 sys.path.append("src")
+
 import utils.image_tools as T
 from utils.training import create_augmentation
+
 
 class BaseDataset(ABC, Dataset):
     def __init__(
@@ -107,24 +108,22 @@ class BaseDataset(ABC, Dataset):
     def __len__(self) -> int:
         return len(self.samples)
 
+
 class BaseDataModule(pl.LightningDataModule):
-    def __init__(self,
-                 dataset_class: BaseDataset,
-                 data_path: str | os.PathLike | None = None,
-                 augment_train: bool = True,
-                 shuffle_val: bool = False,
-                 **loader_kwargs):
+    def __init__(
+        self,
+        dataset_class: BaseDataset,
+        data_path: str | os.PathLike | None = None,
+        **loader_kwargs
+    ):
         super().__init__()
         # Assign dataset attributes
         self.dataset_class = dataset_class
         self.data_path = data_path
-        self.train_transform = None
         self.loader_kwargs = loader_kwargs
-        self.shuffle_val = shuffle_val
 
-        if augment_train:
-            # Create a default augmentation composition
-            self.train_transform = create_augmentation(additional_targets=2)
+        # Create a default augmentation composition
+        self.train_transform = create_augmentation(additional_targets=2)
 
         # Set some default data loader arguments
         self.loader_kwargs.setdefault("batch_size", 10)
@@ -147,7 +146,7 @@ class BaseDataModule(pl.LightningDataModule):
             target="val",
             seed=0
         )
-        return DataLoader(val_dataset, shuffle=self.shuffle_val, **self.loader_kwargs)
+        return DataLoader(val_dataset, **self.loader_kwargs)
 
     def test_dataloader(self) -> DataLoader:
         # Create test dataset and return loader

@@ -5,6 +5,8 @@ import numpy as np
 import PIL.Image as Image
 import torchvision.transforms.functional as F
 
+from skimage.morphology import binary_dilation, disk
+
 def normalize(
     x: torch.Tensor,
     mean: list[float] = [0.485, 0.456, 0.406],
@@ -252,3 +254,39 @@ def save_image(
         path = os.path.splitext(path)[0] + ".jpg"
     
     image.save(path)
+
+def overlay(
+    image: np.ndarray,  # (H, W, C)
+    mask: np.ndarray,   # (H, W), 1s and 0s (can be bool)
+    colors: list[list[int]] = [[0, 0, 0], [255, 0, 0]], 
+    cscale: float = 1,
+    alpha: float = 0.4
+) -> np.ndarray:
+    # Use the correct types
+    mask = mask.astype(np.uint8)
+    
+    # Create the overlay colour
+    colors = np.reshape(colors, (-1, 3))
+    colors = np.atleast_2d(colors) * cscale
+
+    # Init overlayed image
+    im_overlay = image.copy()
+    object_ids = np.unique(mask)
+
+    for object_id in object_ids[1:]:
+        # Create a completely overlayed image
+        overlay = np.ones(image.shape) * np.array(colors[object_id])
+        foreground = alpha * image + (1 - alpha) * overlay
+        
+        # Only keep the overlay on masked part
+        binary_mask = mask == object_id
+        im_overlay[binary_mask] = foreground[binary_mask]
+
+        # Emphasize the contours in the segmented regions
+        countours = binary_dilation(binary_mask, disk(1)) ^ binary_mask
+        im_overlay[countours, :] = np.maximum(0, colors[0, :] - 5)
+    
+    # Compose an overlayed image
+    overlayed = im_overlay.astype(image.dtype)
+
+    return overlayed

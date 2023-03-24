@@ -86,6 +86,14 @@ def create_augmentation(
     return A.Compose(transform_list, additional_targets=additional_targets)
 
 
+def test(
+    model: pl.LightningModule,
+    datamodule: pl.LightningDataModule,
+):
+    trainer = pl.Trainer()
+    trainer.test(model, datamodule)
+
+
 def train(
     model: pl.LightningModule,
     datamodule: pl.LightningDataModule,

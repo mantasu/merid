@@ -1,0 +1,36 @@
+{
+    "mask_generator": {
+        "modules": {
+            "domain_adapter": {"name": "DomainAdapter", "is_torchvision_vgg": false, "vgg_weights": null},
+            "glasses_masker": {"name": "ResnetGeneratorMask", "input_nc": 64, "output_nc": 2, "norm": "BatchNorm2d"},
+            "shadows_masker": {"name": "ResnetGeneratorMask", "input_nc": 65, "output_nc": 2, "norm": "BatchNorm2d"}
+        },
+        "weights": {
+            "domain_adapter": {"path": ["checkpoints/pretrained.pt", "DA"], "freeze": true, "guest_fn": "fix_pesr_da"},
+            "glasses_masker": {"path": ["checkpoints/pretrained.pt", "GM"], "freeze": true},
+            "shadows_masker": {"path": ["checkpoints/pretrained.pt", "SM"], "freeze": true}
+        }
+    },
+    "mask_retoucher": {
+        "modules": {
+            "sunglasses_predictor": {"name": "SunglassesClassifier", "base_model": "efficientnet"},
+            "sunglasses_segmenter": {"name": "GlassesSegmenter", "base_model": "lraspp"}
+        },
+        "weights": {
+            "sunglasses_predictor": {"path": "checkpoints/sunglasses-classifier-efficientnet.pth", "freeze": true},
+            "sunglasses_segmenter": {"path": "checkpoints/sunglasses-segmenter-lraspp.pth", "freeze": true}
+        }
+    },
+    "mask_inpainter": {
+        "modules": {
+            "inpainter": {"name": "LafinInpainter", "det_weights": "checkpoints/landmark_detector.pth", "gen_weights": "checkpoints/InpaintingModel_gen.pth"},
+            "denoiser": {"name": "NAFNetDenoiser"},
+            "recolorizer": {"name": "Recolorizer"}
+        },
+        "weights": {
+            "inpainter": {"path": null, "freeze": true},
+            "denoiser": {"path": "checkpoints/denoiser-new-best.pth", "freeze": true},
+            "recolorizer": {"path": "checkpoints/recolorizer-pure.pth", "freeze": true}
+        }
+    }
+}
