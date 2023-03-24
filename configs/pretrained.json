@@ -1,5 +1,0 @@
-{
-    "mask_generator": {"macro": "configs/macro/pretrained_mask_generator.json"},
-    "mask_retoucher": {"macro": "configs/macro/pretrained_mask_retoucher.json"},
-    "mask_inpainter": {"macro": "configs/macro/pretrained_mask_inpainter_ddnm.json"}
-}

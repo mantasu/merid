@@ -18,7 +18,7 @@
         },
         "weights": {
             "sunglasses_predictor": {"path": "checkpoints/sunglasses-classifier.pth", "freeze": true},
-            "sunglasses_segmenter": {"path": "checkpoints/sunglasses-seg.pth", "freeze": true}
+            "sunglasses_segmenter": {"path": "checkpoints/sunglasses-segmenter.pth", "freeze": true}
         }
     },
     "mask_inpainter": {

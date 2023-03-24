@@ -110,7 +110,6 @@ def load_weights(config: dict[str, dict[str, Any]]) -> dict[str, dict[str, Any]]
 
         if weights_path[0] not in loaded.keys():
             # Load the actual weights (0th element is actual path)
-            print(weights_path[0])
             loaded[weights_path[0]] = torch.load(weights_path[0])
 
         # Get the actual state dictionary from the loaded weights file

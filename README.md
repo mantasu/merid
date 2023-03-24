@@ -33,7 +33,7 @@ To keep the credid where credid is due, we require to download weights for certa
 1. [`pretrained.pt`](https://drive.google.com/file/d/1Ea8Swdajz2J5VOkaXIw_-pVJk9EWYrpx/view) - Portrait Eyeglasses Removal weights for mask generation. Original repository is [here](https://github.com/StoryMY/take-off-eyeglasses).
 2. [`celeba_hq.ckpt`](https://drive.google.com/drive/folders/1cSCTaBtnL7OIKXT4SVME88Vtk4uDd_u4) - DDNM weights on CelebA for inpainting. Original repository is [here](https://github.com/wyhuai/DDNM).
 3. [`InpaintingModel_gen.pth` and `landmark_detector.pth`](https://drive.google.com/drive/folders/1Xwljrct3k75_ModHCkwcNjJk3Fsvv-ra) - LaFIn weights on CelebA-HQ for inpainting. Original repository is [here](https://github.com/YaN9-Y/lafin).
-4. All 4 `.pth` models from the following [link](). We provide our trained weights, however, the best model is still being finetuned.
+4. All 4 `.pth` models from the following [link](https://drive.google.com/file/d/1U9OCL6g6H1LAQx41obGsSXoSlCE2K_in/view?usp=sharing). We provide our trained weights, however, the best model is still being finetuned.
 
 ## Datasets
 
