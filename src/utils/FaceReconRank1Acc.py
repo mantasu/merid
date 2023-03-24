@@ -10,7 +10,7 @@ files_no_glass = os.listdir(folder_path)
 # 
 #
 # folder_path2 = 'data/test/glasses/' # replace this dir with removed glasses folder, keep names the same when removing glasses!!!!
-folder_path2 = '/home/josh/Share/DCLGAN/results/celebAAA/test_latest/images/fake_A/' # replace this dir with removed glasses folder, keep names the same when removing glasses!!!!
+folder_path2 = '/home/josh/remglass/data/all_results/' # replace this dir with removed glasses folder, keep names the same when removing glasses!!!!
 
 files_glass = os.listdir(folder_path2)
 
