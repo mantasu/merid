@@ -3,6 +3,7 @@ numpy
 opencv-python
 sklearn
 scikit-image
+pytorch-fid
 pytorch-lightning
 segmentation-models-pytorch
 pytorch-fid

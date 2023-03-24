@@ -1,16 +1,23 @@
-# RemGlass: Getting Rid of Eyeglasses Through Pretrained Diffusion
+# MERID: Mask-based Eyeglasses Removal via Inpainting and Denoising
 
 ## About
 
-* [ ] Write description
-* [ ] Insert banner
+The source code for the MLP Coursework 4. Our proposed model MERID is able to remove glasses and sunglasses from unconstrained environments and various angles. It has show to achieve state-of-the-art results in terms of realism and identity preservation measures. This package contains files that define our MERID model pipeline as well as provides scripts to set up the data and train the model.
+
+## Quick Start
+
+To run a quick inference to see how the model works, setup the environment and download all the model weights as described below, then run the following (you can put your own $256 \times 256$ images inside [demo](data/demo) directory):
+
+```shell
+python scripts/predict.py -c config.json -i data/demo
+```
 
 ## Setup
 
 The code was built and tested using [Python 3.10.9](https://www.python.org/downloads/release/python-3109/) It is recommended to setup [conda](https://conda.io/projects/conda/en/latest/user-guide/install/index.html) environment:
 ```bash
-conda create -n remglass python=3.10
-conda activate remglass
+conda create -n merid python=3.10
+conda activate merid
 ```
 
 The environment uses [Pytorch 1.13](https://pytorch.org/blog/PyTorch-1.13-release/) with [CUDA 11.7](https://developer.nvidia.com/cuda-11-7-0-download-archive). Please, also install the required packages (may take some time):
@@ -18,6 +25,15 @@ The environment uses [Pytorch 1.13](https://pytorch.org/blog/PyTorch-1.13-releas
 conda install pytorch torchvision pytorch-cuda=11.7 -c pytorch -c nvidia
 pip install -r requirements.txt
 ```
+
+## Models
+
+To keep the credid where credid is due, we require to download weights for certain parts of the architecture from the original author's host link. Otherwise, we share our weights via Google Drive. Please put all the downloaded files inside `checkpoints` directory:
+
+1. [`pretrained.pt`](https://drive.google.com/file/d/1Ea8Swdajz2J5VOkaXIw_-pVJk9EWYrpx/view) - Portrait Eyeglasses Removal weights for mask generation. Original repository is [here](https://github.com/StoryMY/take-off-eyeglasses).
+2. [`celeba_hq.ckpt`](https://drive.google.com/drive/folders/1cSCTaBtnL7OIKXT4SVME88Vtk4uDd_u4) - DDNM weights on CelebA for inpainting. Original repository is [here](https://github.com/wyhuai/DDNM).
+3. [`InpaintingModel_gen.pth` and `landmark_detector.pth`](https://drive.google.com/drive/folders/1Xwljrct3k75_ModHCkwcNjJk3Fsvv-ra) - LaFIn weights on CelebA-HQ for inpainting. Original repository is [here](https://github.com/YaN9-Y/lafin).
+4. All 4 `.pth` models from the following [link](). We provide our trained weights, however, the best model is still being finetuned.
 
 ## Datasets
 
@@ -69,7 +85,7 @@ data                             <- The data directory under project
 #### CelebA Mask HQ (optional)
 
 1. Download the files from Google Drive:
-    * Download `CelebAMask-HQ.zip` folder from [here](https://drive.google.com/file/d/1badu11NqxGf6qM3PTTooQDJvQbejgbTv/view) and put it under `./data/celeba-mask-hq/CelebAMask-HQ.zip`
+    * Download `CelebAMask-HQ.zip` folder from [here](https://drive.google.com/file/d/1badu11NqxGf6qM3PTTooQDJvQbejgbTv/view) and put it under `data/celeba-mask-hq/CelebAMask-HQ.zip`
     * Download `annotations.zip` file from [here](https://drive.google.com/file/d/1xd-d1WRnbt3yJnwh5ORGZI3g-YS-fKM9/view) and put it under `data/celeba/annotations.zip` (_Note:_ you will need this file for `celeba`, so just put it there, _not_ in `celeba-mask-hq`)
 3. Unzip the data:
     ```bash
@@ -103,13 +119,11 @@ data                             <- The data directory under project
     rm -rf data/synthetic/ALIGN_RESULT_v2 data/synthetic/ALIGN_RESULT_v2.zip data/synthetic/synthetic_augment.zip
     ```
 
-</details>
-
 #### CelebA
 
 1. Download the files from Google Drive:
-    * Download `img_celeba.7z` folder from [here](https://drive.google.com/drive/folders/0B7EVK8r0v71peklHb0pGdDl6R28?resourcekey=0-f5cwz-nTIQC3KsBn3wFn7A) and put it under `./data/celeba/img_celeba.7z`
-    * Download `annotations.zip` file from [here](https://drive.google.com/file/d/1xd-d1WRnbt3yJnwh5ORGZI3g-YS-fKM9/view) and put it under `data/celeba/annotations.zip` (Note keep `standard_landmark_68pts.txt` for **LFW** and **MeGlass** datasets)
+    * Download `img_celeba.7z` folder from [here](https://drive.google.com/drive/folders/0B7EVK8r0v71peklHb0pGdDl6R28?resourcekey=0-f5cwz-nTIQC3KsBn3wFn7A) and put it under `data/celeba/img_celeba.7z`
+    * Download `annotations.zip` file from [here](https://drive.google.com/file/d/1xd-d1WRnbt3yJnwh5ORGZI3g-YS-fKM9/view) and put it under `data/celeba/annotations.zip` (_Note:_ keep `standard_landmark_68pts.txt` for **LFW** and **MeGlass** datasets)
 3. Unzip the data:
     ```bash
     7z x data/celeba/img_celeba.7z/img_celeba.7z.001 -o./data/celeba
@@ -197,67 +211,61 @@ data                             <- The data directory under project
 
 </details>
 
-## Checkpoints
-
-For training, certain pre-trained models are used to initialize parts of our architecture. Please download and put the files under `checkpoints` directory:
-1. `vgg_normalised.pth` - download from [here](https://drive.google.com/file/d/1EpkBA2K2eYILDSyPTt0fztz59UjAIpZU/view). Used to initialize 
-
-## File Structure
-* [ ] Describe file structure
 
 ## Training
-* [ ] Describe how to train the model
 
-## Testing
-* [ ] Describe how to evaluate the model
+Training is currently supported for `3` sub-architectures - _sunglasses segmenter_, _denoiser_ and _recolorizer_. To train the sunglasses classifier, please check out a neighboring repository [sunglasses-or-not](https://github.com/mantasu/sunglasses-or-not). To perform traing, e.g.. on denoiser, simply run:
 
-
-
-<details><summary><h3>FID</h3></summary>
-
-
-
-
-1. Install Package:
-
-   ```bash
-   pip install pytorch-fid
-   ```
-
-2. Run:
-
-   ```bash
-   python -m pytorch_fid data/meglass/test_x data/lfw/test_x --device cuda:0
-   ```
-
-   ```bash
-   (base) ➜  remglass git:(main) ✗ python -m pytorch_fid data/meglass/test_x data/lfw/test_x --device cuda:0
-   100%|█████████████████████████████████████████████████████████████████████████████████████████████| 297/297 [00:16<00:00, 18.27it/s]
-   100%|█████████████████████████████████████████████████████████████████████████████████████████████| 4/4 [00:00<00:00,  8.40it/s]
-   FID:  180.22132973432053
-   ```
-
-</details>
-
-
-</details>
-
-## Demo
-To run a demo, put an image to `demo/` and modify [inference.py](inference.py) constants at the top to match the desired behavior. Run the following to generate an image with the removed object:
 ```bash
-python inference.py
+python scripts/train.py --model denoiser
+```
+
+For more details about the parameters, run the script with `--help` flag. 
+
+## Evaluation
+
+To evaluate the whole MERID model, please first generate the results without glasses. For example, evaluating on FFHQ:
+```
+python -m pytorch_fid data/ffhq/test/no_glasses data/ffhq/test/no_glasses_generated --device cuda:0
+```
+
+> To evaluate the model on identity preservation, please refer to [this file](src/utils/FaceReconRank1Acc.py).
+
+For evaluating specific sub-architectures on their trained datasets (specifically, test splits), just run the evaluation script, similar to the one for training. For instance, to evaluate denoiser, run:
+
+```bash
+python scripts/evaluate.py --model denoiser --weights checkpoints/denoiser.pth
 ```
 
 ## Config
 
-### Domain Adapter
-* `is_torchvision_vgg`: whether to load [torchvision _VGG-19_](https://pytorch.org/vision/main/models/generated/torchvision.models.vgg19.html#torchvision.models.vgg19) model or to use the custom [normalised _VGG-19_](https://github.com/naoto0804/pytorch-AdaIN) as in the original "Portrait Eyeglasses Removal" paper
-* `vgg_weights`: the path to VGG weights. Please specify one of the following 3 options:
-    * Leave empty `""` to keep random initialization, e.g., if weights for Domain Adapter are going to be loaded (would automatically initialize VGG weights).
-    * If `is_torchvision_vgg` is `false`, set to the path of the downloaded weights from the repository which contains that _VGG-19_ version
-    * If `is_torchvision_vgg` is `true`, set to one of the [torchvision's](https://pytorch.org/vision/main/models/generated/torchvision.models.vgg19.html#torchvision.models.VGG19_Weights) options like `"DEFAULT"`
-* `weights`: the path to domain adapter weights. If the parameters file contains weights for multiple modules, instead of a path, specify as a list, where the first entry is the path and the second entry is the dictionary key for domain adapter weights. If the value is empty `""`, then it will be trained.
+The config file is simply a dictionary with 3 entries for the three stages as explained in the paper: mask generation, mask enhancement and masked inpainting. An example setup with all pretrained models can be seen in [config.json](config.json). Each part contains 2 dictionaries: `modules` and `wights`:
 
-## References
+* `modules`: a dictionary of modules for each pipeline part. The specific names are listed in [config.json](config.json). Each module is another dictionary containing `name` entry specifying the models class that should be loaded and any extra parameters that go inside that class.
+* `weights`: a dictionary with corresponding weight entries for the models specified in `modules`. Each entry is a dictionary that contains 3 possible items: `path` - the path to actual weights (can be a list if weights are nested as dictionary entires), `freeze` - whether to freeze the loaded model with weights, and `guest_fn` - the name of the function to apply to weights to preprocess them (see [config.py](src/utils/config.py) for more details).
+
+> **Note**: You may want to replace the DDNM inpainter provided in the default `config.json` with LaFIn inpainter for a much faster inference. If so, replace the `inpainter` parts inside `modules` and `weights` with th efollowing lines:
+
+```json
+"modules": {
+    "inpainter": {
+        "name": "LafinInpainter",
+        "det_weights": "checkpoints/landmark_detector.pth",
+        "gen_weights": "checkpoints/InpaintingModel_gen.pth"
+    },
+    ...
+},
+"weights": {
+    ...
+    "inpainter": {
+        "path": null,
+        "freeze": true
+    },
+    ...
+}
+```
+
+## Reference Repositories
+
 The work was heavily influenced and a lot of code has been borrowed and modified from the following repositories:
 * **[HD-CelebA-Cropper](https://github.com/LynnHo/HD-CelebA-Cropper)** - for cropping and aligning CelebA face images

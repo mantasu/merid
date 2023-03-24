@@ -13,24 +13,24 @@
     },
     "mask_retoucher": {
         "modules": {
-            "sunglasses_predictor": {"name": "SunglassesClassifier", "base_model": "efficientnet"},
-            "sunglasses_segmenter": {"name": "GlassesSegmenter", "base_model": "lraspp"}
+            "sunglasses_predictor": {"name": "SunglassesClassifier", "base_model": "mobilenet"},
+            "sunglasses_segmenter": {"name": "GlassesSegmenter", "base_model": "fcn"}
         },
         "weights": {
-            "sunglasses_predictor": {"path": "checkpoints/sunglasses-classifier-efficientnet.pth", "freeze": true},
-            "sunglasses_segmenter": {"path": "checkpoints/sunglasses-segmenter-lraspp.pth", "freeze": true}
+            "sunglasses_predictor": {"path": "checkpoints/sunglasses-classifier.pth", "freeze": true},
+            "sunglasses_segmenter": {"path": "checkpoints/sunglasses-seg.pth", "freeze": true}
         }
     },
     "mask_inpainter": {
         "modules": {
             "inpainter": {"name": "DDNMInpainter", "num_diff_steps": 500, "image_size": 256, "show_progress": true, "config_time_travel": {"T_sampling": 50}, "config_diffusion": {"beta_schedule": "sigmoid"}},
             "denoiser": {"name": "NAFNetDenoiser"},
-            "recolorizer": {"name": "Recolorizer"}
+            "recolorizer": {"name": "RecolorizerModule"}
         },
         "weights": {
             "inpainter": {"path": "checkpoints/celeba_hq.ckpt", "freeze": true},
-            "denoiser": {"path": "checkpoints/denoiser-new-best.pth", "freeze": true},
-            "recolorizer": {"path": "checkpoints/recolorizer-pure.pth", "freeze": true}
+            "denoiser": {"path": "checkpoints/denoiser.pth", "freeze": true},
+            "recolorizer": {"path": "checkpoints/recolorizer.pth", "freeze": true}
         }
     }
 }

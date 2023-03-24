@@ -1,6 +1,10 @@
 import os
+import sys
 import torch
 import argparse
+
+sys.path.append("src")
+
 from models.merid.merid import Merid
 from utils.config import parse_config
 
@@ -9,10 +13,9 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     
     # Define all the command line arguments and default values
-    parser.add_argument("-c", "--config", type=str,
-        default="configs/pretrained.json",
+    parser.add_argument("-c", "--config", type=str, default="config.json",
         help=f"Path to `.json` config that specifies how the inference model "
-             f"should be loaded. Defaults to 'configs/pretrained.json'.")
+             f"should be loaded. Defaults to 'config.json'.")
     parser.add_argument("-i", "--input", type=str, default="data/demo",
         help=f"Path to a single `.jpg` image or to a folder of `.jpg` images "
              f"to be used for prediction. Defaults to 'data/demo'.")
@@ -46,4 +49,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-    

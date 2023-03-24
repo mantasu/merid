@@ -236,14 +236,13 @@ def run_train(base_model: str = "test", **kwargs):
         **kwargs
     )
 
-def run_test(base_model: str = "mini", ckpt_path: str = "/home/mantasu/projects/remglass/checkpoints/sunglasses-segmenter-mini-epoch=284-val_loss=0.05969.ckpt"):
-    
+def run_test(base_model: str = "mini", ckpt_path: str = "checkpoints/unused/sunglasses-segmenter-fcn-epoch=291-val_loss=0.05329.ckpt"):
     model = GlassesSegmenter.load_from_checkpoint(ckpt_path, base_model=base_model)
+    
     datamodule = SunglassesSegmentationDataModule()
 
     trainer = pl.Trainer(accelerator="gpu")
     trainer.test(model, datamodule=datamodule)
-
 
 if __name__ == "__main__":
     run_test()

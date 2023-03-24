@@ -1,8 +1,5 @@
-import sys
-sys.path.append("src/architectures")
-sys.path.append("src/datasets")
-
 import os
+import sys
 import cv2
 import json
 import torch
@@ -12,10 +9,12 @@ import torch.optim as optim
 import pytorch_lightning as pl
 import albumentations as A
 
+from copy import deepcopy
 from typing import Type, Any
 from collections import OrderedDict
 
-from copy import deepcopy
+sys.path.append("src")
+
 from models.pesr.segmentation import ResnetGeneratorMask
 from models.pesr.domain_adaption import DomainAdapter, PatchGAN
 from models.merid.sunglasses_classifier import SunglassesClssifier
@@ -23,7 +22,7 @@ from models.merid.sunglasses_segmenter import GlassesSegmenter
 from models.lafin.lafin_inpainter import LafinInpainter
 from models.ddnm.ddnm_inpainter import DDNMInpainter
 from models.nafnet.nafnet_denoiser import NAFNetDenoiser
-from models.merid.recolorizer import Recolorizer
+from models.merid.recolorizer import RecolorizerModule
 
 
 AVAILABLE_CLASSES = dict((
@@ -38,7 +37,7 @@ AVAILABLE_CLASSES = dict((
     ("LafinInpainter", LafinInpainter),
     ("DDNMInpainter", DDNMInpainter),
     ("NAFNetDenoiser", NAFNetDenoiser),
-    ("Recolorizer", Recolorizer)
+    ("RecolorizerModule", RecolorizerModule)
 ))
 
 def load_json(path: str | os.PathLike) -> dict[str, Any]:
@@ -111,6 +110,7 @@ def load_weights(config: dict[str, dict[str, Any]]) -> dict[str, dict[str, Any]]
 
         if weights_path[0] not in loaded.keys():
             # Load the actual weights (0th element is actual path)
+            print(weights_path[0])
             loaded[weights_path[0]] = torch.load(weights_path[0])
 
         # Get the actual state dictionary from the loaded weights file
@@ -118,7 +118,7 @@ def load_weights(config: dict[str, dict[str, Any]]) -> dict[str, dict[str, Any]]
         
         if (guest_fn := weights_config.pop("guest_fn", None)) is not None:
             # Apply a function to fix the weights if needed
-            weights = locals()[guest_fn](weights)
+            weights = globals()[guest_fn](weights)
 
         # Add weights key (after deleting path)
         config[module_name]["weights"] = weights

@@ -9,7 +9,7 @@ from torch.optim import AdamW, lr_scheduler
 sys.path.append("src")
 
 from models.nafnet.nafnet import NAFNet
-from data.denoise_data import DenoiseSyntheticDataModule
+from data.denoise_data import DenoiseDataModule
 from utils.training import train, compute_gamma, plot_results
 from utils.image_tools import unnormalize
 
@@ -132,7 +132,7 @@ def run_train(model_name: str = "denoiser-new", **kwargs):
 
     model = NAFNetDenoiser(num_epochs=kwargs.get("max_epochs", 10))
     model.load_state_dict(torch.load("checkpoints/denoiser-best.pth"))
-    datamodule = DenoiseSyntheticDataModule(batch_size=10, num_workers=4)
+    datamodule = DenoiseDataModule(batch_size=10, num_workers=4)
 
     train(
         model=model,
@@ -146,14 +146,14 @@ def run_train(model_name: str = "denoiser-new", **kwargs):
 
 def run_test():
     model = NAFNetDenoiser.load_from_checkpoint("checkpoints/denoiser-new-epoch=08-val_loss=0.00024.ckpt")
-    datamodule = DenoiseSyntheticDataModule()
+    datamodule = DenoiseDataModule()
 
     trainer = pl.Trainer(accelerator="gpu")
     trainer.test(model, datamodule=datamodule)
 
 def plot(weights_path: str = "checkpoints/denoiser-best.pth"):
     model = NAFNetDenoiser()
-    datamodule = DenoiseSyntheticDataModule()
+    datamodule = DenoiseDataModule()
 
     plot_results(
         model,

@@ -12,7 +12,7 @@ from ..pesr.segmentation import ResnetGeneratorMask
 from ..ddnm.ddnm_inpainter import DDNMInpainter
 from ..lafin.lafin_inpainter import LafinInpainter
 from ..nafnet.nafnet_denoiser import NAFNetDenoiser
-from .recolorizer import Recolorizer
+from .recolorizer import RecolorizerModule
 from .sunglasses_classifier import SunglassesClssifier
 from .sunglasses_segmenter import GlassesSegmenter
 
@@ -112,7 +112,7 @@ class MaskInpainter(nn.Module):
         # Initialize one of the inpainters, NAFNet denoiser, recolorizer
         self.inpainter: LafinInpainter | DDNMInpainter = config["inpainter"]
         self.denoiser: NAFNetDenoiser = config["denoiser"]
-        self.recolorizer: Recolorizer = config["recolorizer"]
+        self.recolorizer: RecolorizerModule = config["recolorizer"]
 
     def forward(self, image: torch.Tensor, mask: torch.Tensor) -> torch.Tensor:
         # Inpaint, denoise grayscale, colorize
@@ -154,20 +154,7 @@ class Merid(nn.Module):
         img = torch.stack([image_to_tensor(i, device=device) for i in img])
 
         # Predict and convert
-        # img = self(normalize(img))
-
-        image = normalize(img)
-        mask_glasses, mask_shadows = self.mask_generator(image)
-        mask = self.mask_retoucher(image, mask_glasses, mask_shadows)
-        inpainted = self.mask_inpainter.inpainter(unnormalize(image), mask)
-        grayscale = self.mask_inpainter.denoiser(image, normalize(inpainted), mask)
-        img = self.mask_inpainter.recolorizer(grayscale, image)
-
-        for i in range(len(img)):
-            tensor_to_image(mask[i].repeat(3, 1, 1), as_pil=True).save(f"mask-{i}.jpg")
-            tensor_to_image(grayscale[i].repeat(3, 1, 1), as_pil=True).save(f"denoised-{i}.jpg")
-            tensor_to_image(inpainted[i], as_pil=True).save(f"inpainted-{i}.jpg")
-
+        img = self(normalize(img))
         img = [tensor_to_image(i, as_pil=True) for i in img]
 
         return img[0] if len(img) == 1 else img

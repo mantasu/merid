@@ -154,7 +154,7 @@ def run_train(model_name: str = "recolorizer", **kwargs):
     )
 
 def run_test():
-    model = RecolorizerModule().load_from_checkpoint("checkpoints/recolorizer-epoch=19-val_loss=0.00005.ckpt")
+    model = RecolorizerModule().load_from_checkpoint("checkpoints/unused/recolorizer-epoch=18-val_loss=0.00005.ckpt")
     datamodule = RecolorizeDataModule()
 
     trainer = pl.Trainer(accelerator="gpu")
@@ -175,4 +175,4 @@ def plot(weights_path: str = "checkpoints/recolorizer-best.pth"):
 
 
 if __name__ == "__main__":
-    run_train()
+    run_test()
