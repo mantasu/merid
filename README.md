@@ -4,6 +4,8 @@
 
 The source code for the MLP Coursework 4. Our proposed model MERID is able to remove glasses and sunglasses from unconstrained environments and various angles. It has show to achieve state-of-the-art results in terms of realism and identity preservation measures. This package contains files that define our MERID model pipeline as well as provides scripts to set up the data and train the model.
 
+> **Note**: the best model is currently being trained (the number of parameters is increased). The total training time is estimated to be 5 days on a single GTX 3080 Ti. 
+
 ## Quick Start
 
 To run a quick inference to see how the model works, setup the environment and download all the model weights as described below, then run the following (you can put your own $256 \times 256$ images inside [demo](data/demo) directory):
